@@ -1,0 +1,2180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Palm Datebook v4.2</title>
+  <style>
+    :root {
+      --palm-bg: #4a4a4a;
+      --palm-screen: #dce7d3;
+      --palm-border: #2c3823;
+      --palm-text: #1a2414;
+      --palm-header: #3d4f33;
+      --palm-btn: #8fa37f;
+      --palm-btn-active: #6e825f;
+      --palm-grid-line: #b0c2a2;
+      --sat-color: #0055bb;
+      --sat-bg: rgba(0, 85, 187, 0.08);
+      --sun-color: #cc2222;
+      --sun-bg: rgba(204, 34, 34, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Courier New", monospace;
+      background-color: #222;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: var(--palm-text);
+    }
+
+    .palm-device {
+      width: 100%;
+      max-width: 420px;
+      height: 100vh;
+      max-height: 750px;
+      background-color: var(--palm-bg);
+      border-radius: 20px;
+      padding: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    @media (max-width: 480px) {
+      .palm-device {
+        max-width: 100%;
+        height: 100vh;
+        max-height: none;
+        border-radius: 0;
+        padding: 6px;
+      }
+    }
+
+    .palm-screen {
+      background-color: var(--palm-screen);
+      border: 3px solid var(--palm-border);
+      border-radius: 6px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.15);
+    }
+
+    /* 切り替えアニメーション */
+    .view-fade {
+      animation: fadeIn 0.12s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0.6; transform: translateY(2px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ヘッダー */
+    .header {
+      background-color: var(--palm-header);
+      color: #fff;
+      padding: 6px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+    }
+
+    .date-display-btn {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .date-nav {
+      display: flex;
+      gap: 4px;
+    }
+
+    .nav-btn {
+      background: var(--palm-btn);
+      border: 1px solid var(--palm-border);
+      color: #fff;
+      padding: 3px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .nav-btn:active {
+      background: var(--palm-btn-active);
+    }
+
+    /* ツールバー */
+    .toolbar {
+      background-color: #aebf9f;
+      border-bottom: 2px solid var(--palm-border);
+      padding: 4px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .view-tabs {
+      display: flex;
+      gap: 3px;
+    }
+
+    .tab-btn {
+      background: #c5d3b9;
+      border: 1px solid var(--palm-border);
+      padding: 3px 6px;
+      font-size: 11px;
+      font-weight: bold;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: var(--palm-header);
+      color: #fff;
+    }
+
+    .sync-io-btn {
+      background: #3b5998;
+      color: #fff;
+      border: 1px solid #1f3156;
+      padding: 3px 5px;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .sync-io-btn:active {
+      background: #283e6b;
+    }
+
+    /* 1. 日予定ビュー */
+    .schedule-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2px 0;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+    }
+
+    .time-slot {
+      display: flex;
+      border-bottom: 1px dashed var(--palm-grid-line);
+      min-height: 38px;
+      align-items: center;
+      padding: 0 6px;
+      position: relative;
+    }
+
+    .time-slot.highlight {
+      background-color: rgba(255, 230, 150, 0.8);
+      transition: background-color 1.5s ease;
+    }
+
+    /* マーカー用背景色 */
+    .time-slot.bg-yellow {
+      background-color: rgba(255, 235, 59, 0.45);
+    }
+
+    .time-slot.bg-red {
+      background-color: rgba(244, 67, 54, 0.35);
+    }
+
+    .time-label {
+      width: 50px;
+      font-weight: bold;
+      font-size: 11px;
+      color: #2b3a22;
+      border-right: 1px solid var(--palm-border);
+      padding-right: 4px;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .event-input-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      padding-left: 6px;
+      gap: 4px;
+    }
+
+    .event-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--palm-text);
+      font-weight: 500;
+      padding: 4px;
+      outline: none;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    .event-input:focus {
+      background: rgba(255,255,255,0.4);
+      border-radius: 3px;
+    }
+
+    .note-icon-btn {
+      background: transparent;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      opacity: 0.3;
+      padding: 2px 4px;
+    }
+
+    .note-icon-btn.has-note {
+      opacity: 1;
+      color: #8b0000;
+      font-weight: bold;
+    }
+
+    /* 月予定ビュー */
+    .month-view {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      padding: 6px;
+      background: var(--palm-screen);
+      touch-action: pan-y;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .month-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-weight: bold;
+      font-size: 12px;
+      border-bottom: 2px solid var(--palm-border);
+      padding-bottom: 4px;
+      margin-bottom: 4px;
+    }
+
+    .month-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      min-height: 0;
+    }
+
+    .day-cell {
+      background: rgba(255,255,255,0.25);
+      border: 1px solid #b8c7ab;
+      border-radius: 3px;
+      padding: 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      cursor: pointer;
+      font-size: 11px;
+      position: relative;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .day-cell.sun, .month-header .sun-hdr {
+      color: var(--sun-color);
+      background-color: var(--sun-bg);
+    }
+    .day-cell.sat, .month-header .sat-hdr {
+      color: var(--sat-color);
+      background-color: var(--sat-bg);
+    }
+
+    /* 休日変更オーバーライド用スタイル */
+    .day-cell.holiday-off {
+      background-color: #ffffff !important;
+      color: var(--palm-text) !important;
+    }
+
+    .day-cell.holiday-on {
+      color: var(--sun-color) !important;
+      background-color: rgba(204, 34, 34, 0.22) !important;
+    }
+
+    .day-cell.today {
+      border: 2px solid var(--palm-header);
+      font-weight: bold;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.2);
+    }
+
+    .day-cell.other-month {
+      opacity: 0.25;
+      background: transparent !important;
+    }
+
+    .day-num {
+      font-weight: bold;
+      align-self: center;
+    }
+
+    /* 月画面の予定リスト表示 */
+    .month-event-list {
+      width: 100%;
+      margin-top: 2px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .month-event-item {
+      font-size: 9px;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: clip;
+      background: rgba(0,0,0,0.06);
+      padding: 1px 2px;
+      border-radius: 2px;
+      color: var(--palm-text);
+      width: 100%;
+      flex-shrink: 0;
+    }
+
+    /* 予定一覧（検索）・仕事一覧ビュー */
+    .memo-view, .work-view {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      padding: 6px;
+      overflow-y: auto;
+      background: var(--palm-screen);
+    }
+
+    .work-item-content {
+      font-size: 13px;
+    }
+
+    /* 検索バーとコピーボタン */
+    .search-bar-container {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+      align-items: center;
+    }
+
+    .search-input {
+      flex: 1;
+      background: #edf3e8;
+      border: 1px solid var(--palm-border);
+      border-radius: 4px;
+      padding: 5px 8px;
+      font-family: inherit;
+      font-size: 12px;
+      color: var(--palm-text);
+      outline: none;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    .search-input:focus {
+      background: #fff;
+    }
+
+    .copy-btn {
+      background: var(--palm-btn);
+      border: 1px solid var(--palm-border);
+      color: #fff;
+      font-weight: bold;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .copy-btn:active {
+      background: var(--palm-btn-active);
+    }
+
+    .memo-item-container {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .memo-item {
+      background: rgba(255,255,255,0.4);
+      border: 1px solid var(--palm-border);
+      border-radius: 5px;
+      padding: 6px 8px;
+      margin-bottom: 6px;
+      cursor: pointer;
+    }
+
+    .memo-item:active {
+      background: rgba(255,255,255,0.8);
+    }
+
+    /* 1行表示用のスタイル */
+    .memo-item.single-line {
+      padding: 6px 8px;
+    }
+
+    .single-line-content {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .schedule-date-time {
+      font-weight: bold;
+      color: #2b3a22;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .schedule-title {
+      font-weight: bold;
+      color: #111;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .memo-item-preview {
+      font-size: 12px;
+      color: #444;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .empty-memo-msg {
+      text-align: center;
+      padding: 30px 10px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    /* 全画面プロパティ Modal */
+    .note-modal {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--palm-screen);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      padding: 8px;
+    }
+
+    .note-header {
+      background: var(--palm-header);
+      color: #fff;
+      padding: 6px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      border-radius: 4px 4px 0 0;
+      font-size: 13px;
+    }
+
+    .marker-row {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 2px 0;
+      width: 100%;
+    }
+
+    .marker-selector {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      background: rgba(0, 0, 0, 0.08);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .marker-selector label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      gap: 2px;
+    }
+
+    .marker-selector input[type="checkbox"] {
+      cursor: pointer;
+      margin: 0;
+      width: 14px;
+      height: 14px;
+    }
+
+    .note-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px 0;
+      overflow-y: auto;
+    }
+
+    .prop-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .prop-group.flex-1 {
+      flex: 1;
+    }
+
+    .prop-label {
+      font-size: 11px;
+      font-weight: bold;
+      color: var(--palm-header);
+    }
+
+    .prop-value-text {
+      font-size: 13px;
+      font-weight: bold;
+      color: #2b3a22;
+      padding: 2px 4px;
+    }
+
+    .prop-input {
+      width: 100%;
+      background: #edf3e8;
+      border: 1px solid var(--palm-border);
+      border-radius: 4px;
+      padding: 6px 8px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--palm-text);
+      outline: none;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    .prop-input:focus {
+      background: #fff;
+    }
+
+    .note-textarea {
+      flex: 1;
+      width: 100%;
+      background: #edf3e8;
+      border: 1px solid var(--palm-border);
+      border-radius: 4px;
+      padding: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--palm-text);
+      resize: none;
+      outline: none;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    .note-textarea:focus {
+      background: #fff;
+    }
+
+    .note-footer {
+      padding-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .note-close-btn {
+      background: var(--palm-btn);
+      border: 1px solid var(--palm-border);
+      color: #fff;
+      font-weight: bold;
+      padding: 6px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* 長押しコンテキストメニュー / ダイアログ Overlay */
+    .context-menu-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 200;
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .context-menu {
+      background: #edf3e8;
+      border: 3px solid var(--palm-border);
+      border-radius: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+      width: 220px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .context-menu-title {
+      background: var(--palm-header);
+      color: #fff;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .context-menu-btn {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--palm-grid-line);
+      padding: 12px;
+      font-size: 14px;
+      font-weight: bold;
+      color: var(--palm-text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .context-menu-btn:last-child {
+      border-bottom: none;
+    }
+
+    .context-menu-btn:active {
+      background: #c5d3b9;
+    }
+
+    .context-menu-btn.delete-btn {
+      color: #bb0000;
+    }
+
+    /* ステータスバー */
+    .status-bar {
+      font-size: 10px;
+      padding: 3px 8px;
+      background-color: var(--palm-header);
+      color: #cfdcc5;
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+
+<div class="palm-device">
+  <div class="palm-screen">
+    
+    <!-- ヘッダー -->
+    <div class="header">
+      <button class="date-display-btn" id="dateDisplay" onclick="toggleMonthView()">
+        2026/09/20<span style="color: #ff5555; font-weight: bold;">日</span>
+      </button>
+      <div class="date-nav">
+        <button class="nav-btn" onclick="changeDate(-1)">&lt;</button>
+        <button class="nav-btn" onclick="goToday()">今日</button>
+        <button class="nav-btn" onclick="changeDate(1)">&gt;</button>
+      </div>
+      <button class="nav-btn" onclick="openFontModal()" title="設定">⚙️</button>
+    </div>
+
+    <!-- ツールバー -->
+    <div class="toolbar">
+      <div class="view-tabs">
+        <button class="tab-btn active" id="tabDay" onclick="switchView('day')">日</button>
+        <button class="tab-btn" id="tabMonth" onclick="switchView('month')">月</button>
+        <button class="tab-btn" id="tabMemo" onclick="switchView('memo')">一覧</button>
+        <button class="tab-btn" id="tabWork" onclick="switchView('work')">仕事</button>
+      </div>
+      <div style="display: flex; gap: 3px;">
+        <button class="sync-io-btn" onclick="triggerImportJSON()" title="JSON読込">⬇️読込</button>
+        <button class="sync-io-btn" onclick="exportJSONData()" title="JSON保存">⬆️保存</button>
+      </div>
+    </div>
+    <input type="file" id="jsonFileInput" accept=".json" style="display:none;" onchange="importJSONData(event)">
+
+    <!-- 1. 日予定ビュー -->
+    <div class="schedule-list" id="scheduleList"></div>
+
+    <!-- 2. 月予定ビュー -->
+    <div class="month-view" id="monthView">
+      <div class="month-header">
+        <span class="sun-hdr">日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span class="sat-hdr">土</span>
+      </div>
+      <div class="month-grid" id="monthGrid"></div>
+    </div>
+
+    <!-- 3. 予定一覧ビュー（旧メモ一覧＋検索・コピー機能） -->
+    <div class="memo-view" id="memoView">
+      <div class="search-bar-container">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 検索語を入力..." oninput="renderMemoView()">
+        <button class="copy-btn" onclick="copyFilteredSchedules()">📋 コピー</button>
+      </div>
+      <div class="memo-item-container" id="scheduleListFiltered"></div>
+    </div>
+
+    <!-- 3.5 仕事一覧ビュー -->
+    <div class="work-view" id="workView"></div>
+
+    <!-- 4. 全画面プロパティ編集 Modal -->
+    <div class="note-modal" id="noteModal">
+      <div class="note-header">
+        <span id="noteTitleHeader">📝 予定プロパティ</span>
+        <button class="nav-btn" onclick="saveAndCloseNote()">完了</button>
+      </div>
+      <div class="note-body">
+        <div class="prop-group">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label class="prop-label">日時</label>
+            <label style="font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 3px;">
+              <input type="checkbox" id="alarmCheckbox" onchange="toggleAlarmSetting()"> アラート
+            </label>
+          </div>
+          <div class="prop-value-text" id="modalDateTime">---</div>
+          <div id="alarmTimeContainer" style="display: none; margin-top: 4px; background: rgba(0,0,0,0.05); padding: 6px; border-radius: 4px;">
+            <label class="prop-label" style="font-size: 10px; display: block; margin-bottom: 2px;">アラート日時指定</label>
+            <input type="datetime-local" id="alarmTimeInput" class="prop-input" style="font-size: 12px; padding: 4px;">
+          </div>
+        </div>
+
+        <!-- マーカー選択行 -->
+        <div class="marker-row">
+          <div class="marker-selector">
+            <span class="prop-label" style="margin-right: 2px;">マーカー</span>
+            <label><input type="checkbox" id="markerYellow" onchange="handleMarkerChange('yellow')">🟨</label>
+            <label><input type="checkbox" id="markerRed" onchange="handleMarkerChange('red')">🟥</label>
+          </div>
+        </div>
+
+        <div class="prop-group">
+          <label class="prop-label" for="modalTitleInput">件名 (予定)</label>
+          <input type="text" class="prop-input" id="modalTitleInput" placeholder="件名を入力...">
+        </div>
+        <div class="prop-group flex-1">
+          <label class="prop-label" for="noteTextarea">詳細メモ</label>
+          <textarea class="note-textarea" id="noteTextarea" placeholder="ここに詳細なメモを入力..."></textarea>
+        </div>
+      </div>
+      <div class="note-footer">
+        <button class="note-close-btn" style="background: #666;" onclick="cancelNote()">キャンセル</button>
+        <button class="note-close-btn" onclick="saveAndCloseNote()">完了</button>
+      </div>
+    </div>
+
+    <!-- 4.2 アラート通知 Modal -->
+    <div class="context-menu-overlay" id="alarmModalOverlay" style="z-index: 300; display: none;">
+      <div class="context-menu" style="width: 290px; padding: 0; text-align: left; background: var(--palm-screen);">
+        <div style="background: var(--palm-header); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px;">
+          ⚠️ アラート通知
+        </div>
+        <div style="padding: 12px; font-size: 12px; display: flex; flex-direction: column; gap: 8px; color: var(--palm-text);">
+          <div><strong>📅 日時:</strong> <span id="alarmModalDateTime"></span></div>
+          <div><strong>📌 内容:</strong> <span id="alarmModalTitle" style="font-weight: bold;"></span></div>
+          <div style="max-height: 80px; overflow-y: auto; background: rgba(0,0,0,0.05); padding: 6px; border-radius: 4px; white-space: pre-wrap; font-size: 11px;">
+            <strong>📝 メモ:</strong><br><span id="alarmModalNote"></span>
+          </div>
+        </div>
+        <div style="display: flex; border-top: 1px solid var(--palm-border); background: #dce7d3;">
+          <button class="context-menu-btn" style="flex: 1; padding: 10px 4px; font-size: 11px; border-right: 1px solid var(--palm-grid-line);" onclick="stopAlarmNotice()">通知を停止</button>
+          <button class="context-menu-btn" style="flex: 1; padding: 10px 4px; font-size: 11px; border-right: 1px solid var(--palm-grid-line);" onclick="editAlarmEvent()">編集</button>
+          <button class="context-menu-btn" style="flex: 1; padding: 10px 4px; font-size: 12px; font-weight: bold; color: var(--palm-header);" onclick="snoozeAlarmNotice()">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4.5 アプリ設定 (起動画面 & フォントサイズ) Modal -->
+    <div class="context-menu-overlay" id="fontModalOverlay" onclick="closeFontModal(event)">
+      <div class="context-menu" style="width: 260px; padding: 14px; text-align: center;" onclick="event.stopPropagation()">
+        <div style="font-weight: bold; font-size: 13px; margin-bottom: 12px; color: var(--palm-header);">⚙️ アプリ設定</div>
+        
+        <!-- 起動画面の選択メニュー -->
+        <div style="font-size: 11px; font-weight: bold; color: var(--palm-header); margin-bottom: 6px; text-align: left;">【起動時の画面】</div>
+        <div style="display: flex; justify-content: space-around; font-size: 12px; margin-bottom: 14px; background: rgba(0,0,0,0.05); padding: 6px; border-radius: 4px;">
+          <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <input type="radio" id="defViewDay" name="defaultViewRadio" value="day" onchange="setDefaultView('day')"> 1日画面
+          </label>
+          <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <input type="radio" id="defViewMonth" name="defaultViewRadio" value="month" onchange="setDefaultView('month')"> 月画面
+          </label>
+        </div>
+
+        <!-- フォントサイズ設定 -->
+        <div style="font-size: 11px; font-weight: bold; color: var(--palm-header); margin-bottom: 6px; text-align: left;">【フォントサイズ設定】</div>
+        <div style="font-size: 12px; margin-bottom: 6px;">拡大設定: +<span id="fontOffsetVal">0</span> pt</div>
+        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <button class="nav-btn" style="padding: 4px 12px; font-size: 14px;" onclick="adjustFontOffset(-1)">-</button>
+          <input type="number" id="fontOffsetInput" min="0" max="15" value="0" style="width: 55px; text-align: center; padding: 4px; font-size: 13px;" oninput="setFontOffsetFromInput(this.value)">
+          <button class="nav-btn" style="padding: 4px 12px; font-size: 14px;" onclick="adjustFontOffset(1)">+</button>
+        </div>
+        <div style="font-size: 10px; color: #666; margin-bottom: 14px;">(最低: 0pt / 上限: 15pt)</div>
+        
+        <button class="note-close-btn" style="padding: 4px 16px; font-size: 12px;" onclick="closeFontModal()">閉じる</button>
+      </div>
+    </div>
+
+    <!-- 5. 長押しコンテキストメニュー PopUp -->
+    <div class="context-menu-overlay" id="contextMenuOverlay" onclick="closeContextMenu(event)">
+      <div class="context-menu" id="contextMenu">
+        <div class="context-menu-title" id="contextMenuTitle">時刻メニュー</div>
+        <div id="contextMenuButtons"></div>
+      </div>
+    </div>
+
+    <!-- ステータスバー -->
+    <div class="status-bar">
+      <span id="statusBar">IndexedDB 準備完了</span>
+      <span id="saveStatus">保存済</span>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let currentDate = getTodayString();
+  let currentView = 'day';
+  let defaultView = 'day'; // 起動時のデフォルト画面設定
+  let db = null;
+  
+  // 保存競合・二重実行防止フラグ
+  let isSaving = false;
+  
+  // モーダル用ローカルコンテキスト
+  let modalContext = null; 
+  
+  let scrollToTimeOnLoad = null;
+  let activeAlarmEvent = null;
+
+  // 月画面のピンチズーム倍率
+  let monthZoomFactor = 1.0;
+
+  // フォントサイズオフセット管理
+  let fontOffset = 0;
+  const MAX_FONT_OFFSET = 15;
+
+  // コピー対象データ保持用
+  let currentFilteredEvents = [];
+
+  // クリップボード用メモリ
+  let clipboardData = null; // { title: "", note: "", marker: null }
+
+  const WEEK_DAYS = ['日', '月', '火', '水', '木', '金', '土'];
+
+  // 入力要素からの操作イベントバブリング伝播停止
+  function preventBubbling(element) {
+    if (!element) return;
+    element.addEventListener('touchstart', (e) => e.stopPropagation());
+    element.addEventListener('mousedown', (e) => e.stopPropagation());
+  }
+
+  function triggerViewAnimation(element) {
+    if (!element) return;
+    element.classList.remove("view-fade");
+    void element.offsetWidth; // リフロー発生によるアニメーション再適用
+    element.classList.add("view-fade");
+  }
+
+  function getTodayString() {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function formatDateWithDay(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const w = WEEK_DAYS[d.getDay()];
+    return `${y}/${m}/${day} (${w})`;
+  }
+
+  function formatDateForHeader(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const dayOfWeek = d.getDay();
+    const w = WEEK_DAYS[dayOfWeek];
+    
+    let colorStyle = "";
+    if (dayOfWeek === 0) {
+      colorStyle = ' style="color: #ff5555; font-weight: bold;"';
+    } else if (dayOfWeek === 6) {
+      colorStyle = ' style="color: #55aaff; font-weight: bold;"';
+    }
+    return `${y}/${m}/${day}<span${colorStyle}>${w}</span>`;
+  }
+
+  // --------------------------------------------------
+  // 月画面のピンチズーム適用
+  // --------------------------------------------------
+  function applyMonthZoom() {
+    const grid = document.getElementById("monthGrid");
+    const monthView = document.getElementById("monthView");
+    if (!grid || !monthView) return;
+
+    if (monthZoomFactor <= 1.0) {
+      monthZoomFactor = 1.0;
+      grid.style.height = "100%";
+      grid.style.flex = "1";
+    } else {
+      const monthHeader = monthView.querySelector(".month-header");
+      const headerHeight = monthHeader ? monthHeader.offsetHeight : 25;
+      const baseHeight = monthView.clientHeight - headerHeight - 16;
+      if (baseHeight > 0) {
+        grid.style.flex = "none";
+        grid.style.height = `${baseHeight * monthZoomFactor}px`;
+      }
+    }
+  }
+
+  // --------------------------------------------------
+  // 起動時のデフォルト画面設定管理
+  // --------------------------------------------------
+  function loadDefaultView() {
+    const saved = localStorage.getItem("palm_default_view");
+    if (saved === 'day' || saved === 'month') {
+      defaultView = saved;
+    } else {
+      defaultView = 'day';
+    }
+  }
+
+  function setDefaultView(val) {
+    if (val === 'day' || val === 'month') {
+      defaultView = val;
+      localStorage.setItem("palm_default_view", defaultView);
+    }
+  }
+
+  // --------------------------------------------------
+  // フォントサイズ設定機能
+  // --------------------------------------------------
+  function loadFontOffset() {
+    const saved = localStorage.getItem("palm_font_offset");
+    if (saved !== null) {
+      fontOffset = parseInt(saved, 10) || 0;
+      if (fontOffset < 0) fontOffset = 0;
+      if (fontOffset > MAX_FONT_OFFSET) fontOffset = MAX_FONT_OFFSET;
+    }
+    applyFontOffset();
+  }
+
+  function applyFontOffset() {
+    let styleEl = document.getElementById("dynamic-font-style");
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "dynamic-font-style";
+      document.head.appendChild(styleEl);
+    }
+    if (fontOffset === 0) {
+      styleEl.textContent = "";
+    } else {
+      styleEl.textContent = `
+        .time-label, .day-cell, .tab-btn, .sync-io-btn, .copy-btn, .schedule-date-time, .prop-label { font-size: calc(11px + ${fontOffset}px) !important; }
+        .date-nav .nav-btn, .search-input, .month-header, .schedule-title, .memo-item-preview, .context-menu-title, .empty-memo-msg { font-size: calc(12px + ${fontOffset}px) !important; }
+        .date-display-btn, .event-input, .note-header, .prop-value-text, .single-line-content, .work-item-content { font-size: calc(13px + ${fontOffset}px) !important; }
+        .prop-input, .note-textarea, .context-menu-btn { font-size: calc(14px + ${fontOffset}px) !important; }
+        .status-bar { font-size: calc(10px + ${fontOffset}px) !important; }
+        .month-event-item { font-size: calc(9px + ${fontOffset}px) !important; }
+      `;
+    }
+    localStorage.setItem("palm_font_offset", fontOffset);
+  }
+
+  function openFontModal() {
+    document.getElementById("fontOffsetVal").textContent = fontOffset;
+    document.getElementById("fontOffsetInput").value = fontOffset;
+
+    const radDay = document.getElementById("defViewDay");
+    const radMonth = document.getElementById("defViewMonth");
+    if (radDay && radMonth) {
+      if (defaultView === 'month') radMonth.checked = true;
+      else radDay.checked = true;
+    }
+
+    document.getElementById("fontModalOverlay").style.display = "flex";
+  }
+
+  function closeFontModal(e) {
+    if (!e || e.target.id === "fontModalOverlay" || e.type === "click") {
+      document.getElementById("fontModalOverlay").style.display = "none";
+    }
+  }
+
+  function adjustFontOffset(delta) {
+    let newVal = fontOffset + delta;
+    if (newVal < 0) newVal = 0;
+    if (newVal > MAX_FONT_OFFSET) newVal = MAX_FONT_OFFSET;
+    fontOffset = newVal;
+    document.getElementById("fontOffsetVal").textContent = fontOffset;
+    document.getElementById("fontOffsetInput").value = fontOffset;
+    applyFontOffset();
+  }
+
+  function setFontOffsetFromInput(val) {
+    let num = parseInt(val, 10);
+    if (isNaN(num)) return;
+    if (num < 0) num = 0;
+    if (num > MAX_FONT_OFFSET) num = MAX_FONT_OFFSET;
+    fontOffset = num;
+    document.getElementById("fontOffsetVal").textContent = fontOffset;
+    applyFontOffset();
+  }
+
+  function initDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open("PalmDatebookDB_v4", 1);
+
+      request.onupgradeneeded = (e) => {
+        const database = e.target.result;
+        if (!database.objectStoreNames.contains("events")) {
+          const store = database.createObjectStore("events", { keyPath: "id" });
+          store.createIndex("date", "date", { unique: false });
+        }
+      };
+
+      request.onsuccess = (e) => {
+        db = e.target.result;
+        updateStatus("IndexedDB 接続完了");
+        resolve(db);
+      };
+
+      request.onerror = (e) => {
+        updateStatus("IndexedDB エラー");
+        reject(e);
+      };
+    });
+  }
+
+  function getEventsByDate(dateStr) {
+    return new Promise((resolve) => {
+      if (!db) return resolve([]);
+      const tx = db.transaction("events", "readonly");
+      const store = tx.objectStore("events");
+      const index = store.index("date");
+      const request = index.getAll(dateStr);
+      request.onsuccess = () => resolve(request.result || []);
+    });
+  }
+
+  function getEventById(id) {
+    return new Promise((resolve) => {
+      if (!db) return resolve(null);
+      const tx = db.transaction("events", "readonly");
+      const store = tx.objectStore("events");
+      const req = store.get(id);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  }
+
+  function getAllEvents() {
+    return new Promise((resolve) => {
+      if (!db) return resolve([]);
+      const tx = db.transaction("events", "readonly");
+      const store = tx.objectStore("events");
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result || []);
+    });
+  }
+
+  function saveEventDirect(eventObj) {
+    return new Promise((resolve) => {
+      const tx = db.transaction("events", "readwrite");
+      const store = tx.objectStore("events");
+      store.put(eventObj);
+      tx.oncomplete = () => resolve();
+    });
+  }
+
+  function deleteEventDirect(id) {
+    return new Promise((resolve) => {
+      const tx = db.transaction("events", "readwrite");
+      const store = tx.objectStore("events");
+      store.delete(id);
+      tx.oncomplete = () => resolve();
+    });
+  }
+
+  // --------------------------------------------------
+  // JSONデータのエクスポート (⬆️保存) & インポート (⬇️読込)
+  // --------------------------------------------------
+  async function exportJSONData() {
+    try {
+      const allEvents = await getAllEvents();
+      const dataStr = JSON.stringify(allEvents, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      
+      const now = new Date();
+      const timeStamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+      const fileName = `palm_datebook_${timeStamp}.json`;
+
+      const file = new File([blob], fileName, { type: "application/json" });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file]
+          });
+          updateStatus(`JSON共有完了: ${fileName}`);
+          return;
+        } catch (shareErr) {
+          if (shareErr.name === 'AbortError') {
+            return;
+          }
+        }
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      updateStatus(`JSONファイル保存完了: ${fileName}`);
+    } catch (err) {
+      alert("JSON保存・共有に失敗しました: " + err);
+    }
+  }
+
+  function triggerImportJSON() {
+    const fileInput = document.getElementById("jsonFileInput");
+    if (fileInput) {
+      fileInput.value = "";
+      fileInput.click();
+    }
+  }
+
+  async function importJSONData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const eventsData = JSON.parse(e.target.result);
+        if (!Array.isArray(eventsData)) {
+          alert("不正なJSONフォーマットです。（配列データではありません）");
+          return;
+        }
+
+        const tx = db.transaction("events", "readwrite");
+        const store = tx.objectStore("events");
+
+        store.clear();
+
+        for (const item of eventsData) {
+          if (item && item.id) {
+            store.put(item);
+          }
+        }
+
+        tx.oncomplete = () => {
+          updateStatus(`JSON読込・置換完了 (${eventsData.length}件)`);
+          switchView(currentView);
+        };
+
+        tx.onerror = (err) => {
+          alert("データ保存中にエラーが発生しました: " + err.target.error);
+        };
+
+      } catch (err) {
+        alert("JSONファイルの解析に失敗しました: " + err);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // --------------------------------------------------
+  // 3.1 時間帯セル（タイムスロット入力欄）の確定時保存処理
+  // --------------------------------------------------
+  async function saveTimeSlotEvent(id, dateStr, timeStr, newTitle) {
+    if (isSaving) return;
+    isSaving = true;
+    showSavingStatus(true);
+
+    try {
+      const titleTrim = (newTitle || "").trim();
+      const existing = await getEventById(id);
+
+      const isContentEmpty = !titleTrim && (!existing || (!existing.note && !existing.marker && !existing.alarmEnabled));
+
+      if (isContentEmpty) {
+        if (existing) {
+          await deleteEventDirect(id);
+          updateStatus(`削除完了: ${timeStr}`);
+        }
+      } else {
+        const eventObj = {
+          id: id,
+          date: dateStr,
+          time: timeStr,
+          title: titleTrim,
+          note: existing ? (existing.note || "") : "",
+          marker: existing ? (existing.marker || null) : null,
+          alarmEnabled: existing ? (existing.alarmEnabled || false) : false,
+          alarmTime: existing ? (existing.alarmTime || `${dateStr}T${timeStr}`) : `${dateStr}T${timeStr}`,
+          updatedAt: new Date().toISOString()
+        };
+        await saveEventDirect(eventObj);
+        updateStatus(`保存完了: ${timeStr}`);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      isSaving = false;
+      showSavingStatus(false);
+    }
+  }
+
+  // --------------------------------------------------
+  // 長押し検知（Long Press）実装
+  // --------------------------------------------------
+  let longPressTimer = null;
+
+  function attachLongPressEvents(element, evtObj, timeStr) {
+    const startHandler = () => {
+      longPressTimer = setTimeout(() => {
+        if (navigator.vibrate) navigator.vibrate(40);
+        openContextMenu(evtObj, timeStr);
+      }, 500);
+    };
+
+    const cancelHandler = () => {
+      clearTimeout(longPressTimer);
+    };
+
+    element.addEventListener('touchstart', startHandler, { passive: true });
+    element.addEventListener('touchend', cancelHandler);
+    element.addEventListener('touchmove', cancelHandler);
+
+    element.addEventListener('mousedown', startHandler);
+    element.addEventListener('mouseup', cancelHandler);
+    element.addEventListener('mouseleave', cancelHandler);
+  }
+
+  // 月画面用長押しトグル処理
+  async function toggleHolidayOverride(dateStr, dayOfWeek) {
+    const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+    const holidayId = "holiday_" + dateStr;
+
+    const existing = await getEventById(holidayId);
+    if (existing) {
+      await deleteEventDirect(holidayId);
+      updateStatus(`${dateStr} の休日設定を解除（標準に戻す）`);
+    } else {
+      const overrideType = isWeekend ? "workday" : "holiday";
+      const holidayObj = {
+        id: holidayId,
+        date: dateStr,
+        isHolidayOverride: overrideType,
+        updatedAt: new Date().toISOString()
+      };
+      await saveEventDirect(holidayObj);
+      updateStatus(`${dateStr} を${isWeekend ? "平日（背景白）" : "休日（背景赤）"}に設定`);
+    }
+    renderMonthView();
+  }
+
+  function attachMonthDayLongPress(cell, dateStr, dayOfWeek) {
+    let isLongPress = false;
+    let timer = null;
+
+    const start = () => {
+      isLongPress = false;
+      timer = setTimeout(async () => {
+        isLongPress = true;
+        if (navigator.vibrate) navigator.vibrate(40);
+        await toggleHolidayOverride(dateStr, dayOfWeek);
+      }, 500);
+    };
+
+    const cancel = () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+
+    cell.addEventListener('touchstart', start, { passive: true });
+    cell.addEventListener('touchend', cancel);
+    cell.addEventListener('touchmove', cancel);
+
+    cell.addEventListener('mousedown', start);
+    cell.addEventListener('mouseup', cancel);
+    cell.addEventListener('mouseleave', cancel);
+
+    cell.onclick = (e) => {
+      if (isLongPress) {
+        e.preventDefault();
+        e.stopPropagation();
+        isLongPress = false;
+        return;
+      }
+      currentDate = dateStr;
+      switchView('day');
+    };
+  }
+
+  // コンテキストメニュー（ポップアップ）表示
+  function openContextMenu(evtObj, timeStr) {
+    const overlay = document.getElementById("contextMenuOverlay");
+    const titleEl = document.getElementById("contextMenuTitle");
+    const container = document.getElementById("contextMenuButtons");
+    
+    titleEl.textContent = `⏱ ${timeStr} の操作`;
+    container.innerHTML = "";
+
+    const hasContent = evtObj && ((evtObj.title && evtObj.title.trim()) || (evtObj.note && evtObj.note.trim()) || evtObj.marker);
+
+    if (hasContent) {
+      const copyBtn = document.createElement("button");
+      copyBtn.className = "context-menu-btn";
+      copyBtn.innerHTML = "📋 コピー";
+      copyBtn.onclick = () => {
+        clipboardData = { title: evtObj.title || "", note: evtObj.note || "", marker: evtObj.marker || null };
+        updateStatus(`コピー完了: ${evtObj.title || timeStr}`);
+        closeContextMenu();
+      };
+
+      const cutBtn = document.createElement("button");
+      cutBtn.className = "context-menu-btn";
+      cutBtn.innerHTML = "✂️ 切り取り";
+      cutBtn.onclick = async () => {
+        clipboardData = { title: evtObj.title || "", note: evtObj.note || "", marker: evtObj.marker || null };
+        await deleteEventDirect(evtObj.id);
+        updateStatus(`切り取り完了: ${timeStr}`);
+        closeContextMenu();
+        renderDayView();
+      };
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "context-menu-btn delete-btn";
+      deleteBtn.innerHTML = "🗑️ 削除";
+      deleteBtn.onclick = async () => {
+        await deleteEventDirect(evtObj.id);
+        updateStatus(`削除完了: ${timeStr}`);
+        closeContextMenu();
+        renderDayView();
+      };
+
+      container.appendChild(copyBtn);
+      container.appendChild(cutBtn);
+      container.appendChild(deleteBtn);
+
+    } else {
+      if (clipboardData) {
+        const pasteBtn = document.createElement("button");
+        pasteBtn.className = "context-menu-btn";
+        pasteBtn.innerHTML = `📌 ペースト (${clipboardData.title || 'メモあり'})`;
+        pasteBtn.onclick = async () => {
+          const evtId = evtObj ? evtObj.id : `evt_${currentDate}_${timeStr}`;
+          const newEvt = {
+            id: evtId,
+            date: currentDate,
+            time: timeStr,
+            title: clipboardData.title,
+            note: clipboardData.note,
+            marker: clipboardData.marker || null,
+            updatedAt: new Date().toISOString()
+          };
+          await saveEventDirect(newEvt);
+          updateStatus(`ペースト完了: ${timeStr}`);
+          closeContextMenu();
+          renderDayView();
+        };
+        container.appendChild(pasteBtn);
+      } else {
+        const emptyMsg = document.createElement("div");
+        emptyMsg.style.padding = "14px";
+        emptyMsg.style.fontSize = "12px";
+        emptyMsg.style.color = "#666";
+        emptyMsg.style.textAlign = "center";
+        emptyMsg.textContent = "（コピーされた予定がありません）";
+        container.appendChild(emptyMsg);
+      }
+    }
+
+    overlay.style.display = "flex";
+  }
+
+  function closeContextMenu(e) {
+    if (!e || e.target.id === "contextMenuOverlay") {
+      document.getElementById("contextMenuOverlay").style.display = "none";
+    }
+  }
+
+  // --------------------------------------------------
+  // 1. 日予定ビュー描画
+  // --------------------------------------------------
+  async function renderDayView() {
+    document.getElementById("dateDisplay").innerHTML = formatDateForHeader(currentDate);
+    const listContainer = document.getElementById("scheduleList");
+    
+    listContainer.innerHTML = "";
+
+    const events = await getEventsByDate(currentDate);
+    const eventMap = {};
+    events.forEach(e => { if (e.time) eventMap[e.time] = e; });
+
+    let targetSlotElement = null;
+    const highlightTime = scrollToTimeOnLoad;
+    scrollToTimeOnLoad = null;
+
+    for (let h = 0; h < 24; h++) {
+      const timeStr = String(h).padStart(2, '0') + ":00";
+      const evt = eventMap[timeStr];
+      const evtId = evt ? evt.id : `evt_${currentDate}_${timeStr}`;
+
+      const slotDiv = document.createElement("div");
+      slotDiv.className = "time-slot";
+      slotDiv.id = `slot_${timeStr}`;
+
+      if (evt && evt.marker === "yellow") {
+        slotDiv.classList.add("bg-yellow");
+      } else if (evt && evt.marker === "red") {
+        slotDiv.classList.add("bg-red");
+      }
+
+      if (highlightTime === timeStr) {
+        slotDiv.classList.add("highlight");
+        setTimeout(() => slotDiv.classList.remove("highlight"), 2000);
+      }
+
+      const timeLabel = document.createElement("div");
+      timeLabel.className = "time-label";
+      timeLabel.textContent = timeStr;
+
+      const inputContainer = document.createElement("div");
+      inputContainer.className = "event-input-container";
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "event-input";
+      input.placeholder = "--";
+      input.value = evt ? evt.title : "";
+
+      preventBubbling(input);
+
+      input.onchange = (e) => saveTimeSlotEvent(evtId, currentDate, timeStr, e.target.value);
+
+      const noteBtn = document.createElement("button");
+      noteBtn.className = "note-icon-btn" + (evt && (evt.note || evt.alarmEnabled) ? " has-note" : "");
+      noteBtn.innerHTML = evt && evt.alarmEnabled ? "⚠️" : (evt && evt.note ? "📝" : "📄");
+      noteBtn.onclick = () => openNoteModal(evtId, timeStr, input.value);
+
+      inputContainer.appendChild(input);
+      inputContainer.appendChild(noteBtn);
+
+      slotDiv.appendChild(timeLabel);
+      slotDiv.appendChild(inputContainer);
+
+      attachLongPressEvents(slotDiv, evt || { id: evtId, date: currentDate, time: timeStr, title: "", note: "", marker: null }, timeStr);
+
+      listContainer.appendChild(slotDiv);
+
+      if (highlightTime ? timeStr === highlightTime : timeStr === "06:00") {
+        targetSlotElement = slotDiv;
+      }
+    }
+
+    if (targetSlotElement) {
+      listContainer.scrollTop = targetSlotElement.offsetTop;
+    }
+
+    triggerViewAnimation(listContainer);
+  }
+
+  // --------------------------------------------------
+  // 2. 月予定ビュー描画
+  // --------------------------------------------------
+  async function renderMonthView() {
+    document.getElementById("dateDisplay").textContent = currentDate.substring(0, 7) + " 📅";
+    const grid = document.getElementById("monthGrid");
+    grid.innerHTML = "";
+    triggerViewAnimation(document.getElementById("monthView"));
+
+    const allEvents = await getAllEvents();
+    
+    const holidayMap = {};
+    allEvents.forEach(e => {
+      if (e.id && e.id.startsWith("holiday_")) {
+        holidayMap[e.date] = e.isHolidayOverride;
+      }
+    });
+
+    const dateEventsMap = {};
+    allEvents.forEach(e => {
+      if (e.title && e.title.trim() && (!e.id || !e.id.startsWith("holiday_"))) {
+        if (!dateEventsMap[e.date]) dateEventsMap[e.date] = [];
+        dateEventsMap[e.date].push(e);
+      }
+    });
+
+    const currDateObj = new Date(currentDate + 'T00:00:00');
+    const year = currDateObj.getFullYear();
+    const month = currDateObj.getMonth();
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // 週数（行数）を計算して動的に全セル均等分割を適用
+    const totalWeeks = Math.ceil((firstDay + daysInMonth) / 7);
+    grid.style.gridTemplateRows = `repeat(${totalWeeks}, 1fr)`;
+
+    for (let i = 0; i < firstDay; i++) {
+      const cell = document.createElement("div");
+      cell.className = "day-cell other-month";
+      grid.appendChild(cell);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateObj = new Date(year, month, d);
+      const dayOfWeek = dateObj.getDay();
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      
+      const cell = document.createElement("div");
+      let cellClasses = ["day-cell"];
+      
+      const hOverride = holidayMap[dateStr];
+
+      if (hOverride === "holiday") {
+        cellClasses.push("holiday-on");
+      } else if (hOverride === "workday") {
+        cellClasses.push("holiday-off");
+      } else {
+        if (dayOfWeek === 0) cellClasses.push("sun");
+        if (dayOfWeek === 6) cellClasses.push("sat");
+      }
+
+      if (dateStr === getTodayString()) cellClasses.push("today");
+
+      cell.className = cellClasses.join(" ");
+
+      const dayNum = document.createElement("div");
+      dayNum.className = "day-num";
+      dayNum.textContent = d;
+      cell.appendChild(dayNum);
+
+      const dayEvents = dateEventsMap[dateStr] || [];
+      if (dayEvents.length > 0) {
+        dayEvents.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+        
+        const listDiv = document.createElement("div");
+        listDiv.className = "month-event-list";
+
+        dayEvents.forEach(evt => {
+          const item = document.createElement("div");
+          item.className = "month-event-item";
+          const shortTitle = evt.title.length > 5 ? evt.title.substring(0, 5) : evt.title;
+          item.textContent = shortTitle;
+          listDiv.appendChild(item);
+        });
+
+        cell.appendChild(listDiv);
+      }
+
+      attachMonthDayLongPress(cell, dateStr, dayOfWeek);
+
+      grid.appendChild(cell);
+    }
+
+    applyMonthZoom();
+  }
+
+  // --------------------------------------------------
+  // 3. 予定一覧ビュー描画（全予定リスト・検索・絞り込み表示）
+  // --------------------------------------------------
+  async function renderMemoView() {
+    document.getElementById("dateDisplay").textContent = "📋 予定一覧";
+    const memoContainer = document.getElementById("memoView");
+    const filteredListContainer = document.getElementById("scheduleListFiltered");
+    
+    triggerViewAnimation(memoContainer);
+
+    const searchInput = document.getElementById("searchInput");
+    const keyword = searchInput ? searchInput.value.trim().toLowerCase() : "";
+
+    const allEvents = await getAllEvents();
+    
+    let validEvents = allEvents.filter(e => 
+      (!e.id || !e.id.startsWith("holiday_")) &&
+      ((e.title && e.title.trim() !== "") || (e.note && e.note.trim() !== ""))
+    );
+
+    if (keyword !== "") {
+      validEvents = validEvents.filter(e => {
+        const titleMatch = e.title && e.title.toLowerCase().includes(keyword);
+        const noteMatch = e.note && e.note.toLowerCase().includes(keyword);
+        return titleMatch || noteMatch;
+      });
+    }
+
+    validEvents.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+    currentFilteredEvents = validEvents;
+
+    filteredListContainer.innerHTML = "";
+
+    if (validEvents.length === 0) {
+      filteredListContainer.innerHTML = `<div class="empty-memo-msg">${keyword ? '検索条件に一致する予定はありません。' : '登録されている予定はありません。'}</div>`;
+      return;
+    }
+
+    validEvents.forEach(evt => {
+      const item = document.createElement("div");
+      item.className = "memo-item";
+
+      const hasNote = evt.note && evt.note.trim() !== "";
+      const markerSymbol = evt.marker === "yellow" ? "🟨 " : (evt.marker === "red" ? "🟥 " : "");
+      const alarmSymbol = evt.alarmEnabled ? "⚠️ " : "";
+      const titleDisplay = evt.title && evt.title.trim() ? evt.title : "（件名なし）";
+
+      if (hasNote) {
+        const firstLineNote = evt.note.trim().split('\n')[0];
+        item.innerHTML = `
+          <div class="single-line-content" style="margin-bottom: 3px;">
+            <span class="schedule-date-time">📅 ${formatDateWithDay(evt.date)} ${evt.time}</span>
+            <span class="schedule-title">${alarmSymbol}${markerSymbol}${titleDisplay}</span>
+          </div>
+          <div class="memo-item-preview">📝 ${firstLineNote}</div>
+        `;
+      } else {
+        item.classList.add("single-line");
+        item.innerHTML = `
+          <div class="single-line-content">
+            <span class="schedule-date-time">📅 ${formatDateWithDay(evt.date)} ${evt.time}</span>
+            <span class="schedule-title">${alarmSymbol}${markerSymbol}${titleDisplay}</span>
+          </div>
+        `;
+      }
+
+      item.onclick = () => {
+        currentDate = evt.date;
+        scrollToTimeOnLoad = evt.time;
+        switchView('day');
+      };
+
+      filteredListContainer.appendChild(item);
+    });
+  }
+
+  // 絞り込み結果のテキストコピー機能
+  async function copyFilteredSchedules() {
+    if (!currentFilteredEvents || currentFilteredEvents.length === 0) {
+      alert("コピーする予定がありません。");
+      return;
+    }
+
+    const textLines = currentFilteredEvents.map(evt => {
+      const title = evt.title && evt.title.trim() ? evt.title.trim() : "（件名なし）";
+      const markerSymbol = evt.marker === "yellow" ? "🟨 " : (evt.marker === "red" ? "🟥 " : "");
+      let line = `${formatDateWithDay(evt.date)} ${evt.time} ${markerSymbol}${title}`;
+      if (evt.note && evt.note.trim()) {
+        line += `\n📝 ${evt.note.trim()}`;
+      }
+      return line;
+    });
+
+    const formattedText = textLines.join("\n\n");
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(formattedText);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = formattedText;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      alert("テキスト形式で予定をクリップボードにコピーしました。");
+      updateStatus("クリップボードにコピー完了");
+    } catch (err) {
+      alert("コピーに失敗しました: " + err);
+    }
+  }
+
+  // --------------------------------------------------
+  // 3.5 仕事一覧ビュー描画
+  // --------------------------------------------------
+  async function renderWorkView() {
+    document.getElementById("dateDisplay").textContent = "💼 仕事一覧";
+    const workContainer = document.getElementById("workView");
+    workContainer.innerHTML = "";
+    triggerViewAnimation(workContainer);
+
+    const allEvents = await getAllEvents();
+    const workEvents = allEvents.filter(e => (!e.id || !e.id.startsWith("holiday_")) && (e.marker === "yellow" || e.marker === "red"));
+
+    if (workEvents.length === 0) {
+      workContainer.innerHTML = `<div class="empty-memo-msg">💼 マーカー（🟨 / 🟥）のついた予定はありません。</div>`;
+      return;
+    }
+
+    workEvents.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+
+    workEvents.forEach(evt => {
+      const item = document.createElement("div");
+      item.className = "memo-item";
+      item.style.padding = "8px 10px";
+
+      const markerBadge = evt.marker === "yellow" ? "🟨" : "🟥";
+      const titleText = evt.title && evt.title.trim() ? evt.title : "（件名なし）";
+
+      item.innerHTML = `
+        <div class="work-item-content" style="display: flex; align-items: center; gap: 8px; width: 100%; font-weight: bold;">
+          <span>${markerBadge}</span>
+          <span class="schedule-date-time" style="color: #2b3a22; opacity: 0.9; white-space: nowrap;">${formatDateWithDay(evt.date)} ${evt.time}</span>
+          <span class="schedule-title" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; color: #111;">${titleText}</span>
+        </div>
+      `;
+
+      item.onclick = () => {
+        currentDate = evt.date;
+        openNoteModal(evt.id, evt.time, evt.title);
+      };
+
+      workContainer.appendChild(item);
+    });
+  }
+
+  // --------------------------------------------------
+  // 3.2 詳細編集モーダル画面
+  // --------------------------------------------------
+  async function openNoteModal(evtId, timeStr, currentTitle) {
+    modalContext = {
+      id: evtId,
+      date: currentDate,
+      time: timeStr || "06:00"
+    };
+
+    document.getElementById("noteTitleHeader").textContent = `📝 予定プロパティ`;
+    document.getElementById("modalDateTime").textContent = `${formatDateWithDay(modalContext.date)} ${modalContext.time}`;
+
+    const evt = await getEventById(modalContext.id);
+
+    document.getElementById("modalTitleInput").value = (evt && evt.title !== undefined) ? evt.title : (currentTitle || "");
+    document.getElementById("noteTextarea").value = evt ? (evt.note || "") : "";
+    
+    document.getElementById("markerYellow").checked = evt ? (evt.marker === 'yellow') : false;
+    document.getElementById("markerRed").checked = evt ? (evt.marker === 'red') : false;
+
+    const alarmCb = document.getElementById("alarmCheckbox");
+    const alarmContainer = document.getElementById("alarmTimeContainer");
+    const alarmInput = document.getElementById("alarmTimeInput");
+
+    alarmCb.checked = evt ? !!evt.alarmEnabled : false;
+    alarmContainer.style.display = (evt && evt.alarmEnabled) ? "block" : "none";
+    alarmInput.value = (evt && evt.alarmTime) ? evt.alarmTime : `${modalContext.date}T${modalContext.time}`;
+
+    document.getElementById("noteModal").style.display = "flex";
+  }
+
+  function toggleAlarmSetting() {
+    const alarmCb = document.getElementById("alarmCheckbox");
+    const alarmContainer = document.getElementById("alarmTimeContainer");
+    const alarmInput = document.getElementById("alarmTimeInput");
+
+    if (alarmCb.checked) {
+      alarmContainer.style.display = "block";
+      if (!alarmInput.value && modalContext) {
+        alarmInput.value = `${modalContext.date}T${modalContext.time}`;
+      }
+    } else {
+      alarmContainer.style.display = "none";
+    }
+  }
+
+  function handleMarkerChange(changedColor) {
+    const yellowCb = document.getElementById("markerYellow");
+    const redCb = document.getElementById("markerRed");
+
+    if (changedColor === 'yellow' && yellowCb.checked) {
+      redCb.checked = false;
+    } else if (changedColor === 'red' && redCb.checked) {
+      yellowCb.checked = false;
+    }
+  }
+
+  // 「完了 / 保存」ボタン押下時の明示的保存処理
+  async function saveAndCloseNote() {
+    if (isSaving) return;
+    if (!modalContext) {
+      document.getElementById("noteModal").style.display = "none";
+      return;
+    }
+
+    isSaving = true;
+    showSavingStatus(true);
+
+    try {
+      const titleVal = document.getElementById("modalTitleInput").value;
+      const noteVal = document.getElementById("noteTextarea").value;
+      
+      let markerVal = null;
+      if (document.getElementById("markerYellow").checked) markerVal = "yellow";
+      else if (document.getElementById("markerRed").checked) markerVal = "red";
+
+      const alarmEnabled = document.getElementById("alarmCheckbox").checked;
+      const alarmTime = document.getElementById("alarmTimeInput").value;
+
+      const titleTrim = titleVal.trim();
+      const noteTrim = noteVal.trim();
+
+      const existing = await getEventById(modalContext.id);
+      
+      const isContentEmpty = !titleTrim && !noteTrim && !markerVal && !alarmEnabled;
+
+      if (isContentEmpty) {
+        if (existing) {
+          await deleteEventDirect(modalContext.id);
+          updateStatus("データ削除完了");
+        }
+      } else {
+        const eventObj = {
+          id: modalContext.id,
+          date: modalContext.date,
+          time: modalContext.time,
+          title: titleTrim,
+          note: noteTrim,
+          marker: markerVal,
+          alarmEnabled: alarmEnabled,
+          alarmTime: alarmTime || `${modalContext.date}T${modalContext.time}`,
+          updatedAt: new Date().toISOString()
+        };
+        await saveEventDirect(eventObj);
+        updateStatus("プロパティ保存完了");
+      }
+
+      modalContext = null;
+      document.getElementById("noteModal").style.display = "none";
+      refreshCurrentView();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      isSaving = false;
+      showSavingStatus(false);
+    }
+  }
+
+  function cancelNote() {
+    modalContext = null;
+    document.getElementById("noteModal").style.display = "none";
+  }
+
+  function refreshCurrentView() {
+    if (currentView === 'day') renderDayView();
+    else if (currentView === 'month') renderMonthView();
+    else if (currentView === 'memo') renderMemoView();
+    else if (currentView === 'work') renderWorkView();
+  }
+
+  // --------------------------------------------------
+  // 4.2 アラート通知機能・制御
+  // --------------------------------------------------
+  async function checkAlarms() {
+    if (activeAlarmEvent) return;
+    if (!db) return;
+
+    const allEvents = await getAllEvents();
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const currentNowStr = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+    const triggeredEvents = allEvents.filter(e => 
+      e.alarmEnabled && e.alarmTime && e.alarmTime <= currentNowStr && (!e.id || !e.id.startsWith("holiday_"))
+    );
+
+    if (triggeredEvents.length > 0) {
+      triggeredEvents.sort((a, b) => a.alarmTime.localeCompare(b.alarmTime));
+      showAlarmModal(triggeredEvents[0]);
+    }
+  }
+
+  function showAlarmModal(evt) {
+    activeAlarmEvent = evt;
+    document.getElementById("alarmModalDateTime").textContent = `${formatDateWithDay(evt.date)} ${evt.time}`;
+    document.getElementById("alarmModalTitle").textContent = evt.title || "（件名なし）";
+    document.getElementById("alarmModalNote").textContent = evt.note || "（メモなし）";
+    document.getElementById("alarmModalOverlay").style.display = "flex";
+  }
+
+  async function snoozeAlarmNotice() {
+    if (!activeAlarmEvent) return;
+    const nextTime = new Date(Date.now() + 10 * 60 * 1000);
+    const year = nextTime.getFullYear();
+    const month = String(nextTime.getMonth() + 1).padStart(2, '0');
+    const day = String(nextTime.getDate()).padStart(2, '0');
+    const hours = String(nextTime.getHours()).padStart(2, '0');
+    const minutes = String(nextTime.getMinutes()).padStart(2, '0');
+    const nextAlarmStr = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+    activeAlarmEvent.alarmTime = nextAlarmStr;
+    activeAlarmEvent.updatedAt = new Date().toISOString();
+    await saveEventDirect(activeAlarmEvent);
+
+    document.getElementById("alarmModalOverlay").style.display = "none";
+    activeAlarmEvent = null;
+    updateStatus("アラートを10分後に再通知します");
+  }
+
+  async function stopAlarmNotice() {
+    if (!activeAlarmEvent) return;
+    activeAlarmEvent.alarmEnabled = false;
+    activeAlarmEvent.updatedAt = new Date().toISOString();
+    await saveEventDirect(activeAlarmEvent);
+
+    document.getElementById("alarmModalOverlay").style.display = "none";
+    activeAlarmEvent = null;
+    updateStatus("アラート通知を解除しました");
+  }
+
+  function editAlarmEvent() {
+    if (!activeAlarmEvent) return;
+    const targetEvt = activeAlarmEvent;
+    document.getElementById("alarmModalOverlay").style.display = "none";
+    activeAlarmEvent = null;
+
+    currentDate = targetEvt.date;
+    switchView('day');
+    openNoteModal(targetEvt.id, targetEvt.time, targetEvt.title);
+  }
+
+  // --------------------------------------------------
+  // 5. ビュー切替 & ナビゲーション
+  // --------------------------------------------------
+  function switchView(viewName) {
+    currentView = viewName;
+    document.getElementById("tabDay").className = "tab-btn" + (viewName === 'day' ? " active" : "");
+    document.getElementById("tabMonth").className = "tab-btn" + (viewName === 'month' ? " active" : "");
+    document.getElementById("tabMemo").className = "tab-btn" + (viewName === 'memo' ? " active" : "");
+    document.getElementById("tabWork").className = "tab-btn" + (viewName === 'work' ? " active" : "");
+
+    document.getElementById("scheduleList").style.display = viewName === 'day' ? "block" : "none";
+    document.getElementById("monthView").style.display = viewName === 'month' ? "flex" : "none";
+    document.getElementById("memoView").style.display = viewName === 'memo' ? "flex" : "none";
+    document.getElementById("workView").style.display = viewName === 'work' ? "flex" : "none";
+
+    refreshCurrentView();
+  }
+
+  function toggleMonthView() {
+    switchView(currentView === 'day' ? 'month' : 'day');
+  }
+
+  function changeDate(days) {
+    const d = new Date(currentDate + 'T00:00:00');
+    d.setDate(d.getDate() + days);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    currentDate = `${year}-${month}-${day}`;
+    
+    if (currentView === 'day') renderDayView();
+    else if (currentView === 'month') renderMonthView();
+  }
+
+  function changeMonth(months) {
+    const d = new Date(currentDate + 'T00:00:00');
+    d.setDate(1);
+    d.setMonth(d.getMonth() + months);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    currentDate = `${year}-${month}-${day}`;
+    
+    if (currentView === 'month') renderMonthView();
+    else if (currentView === 'day') renderDayView();
+  }
+
+  function goToday() {
+    currentDate = getTodayString();
+    if (currentView === 'day') renderDayView();
+    else if (currentView === 'month') renderMonthView();
+  }
+
+  function updateStatus(msg) {
+    document.getElementById("statusBar").textContent = msg;
+  }
+
+  function showSavingStatus(saving) {
+    document.getElementById("saveStatus").textContent = saving ? "保存中..." : "保存済";
+    document.getElementById("saveStatus").style.color = saving ? "#ff8c00" : "#cfdcc5";
+  }
+
+  // --------------------------------------------------
+  // タッチジェスチャー対応（スワイプ ＆ ピンチズーム）
+  // --------------------------------------------------
+  function setupSwipeAndZoomNavigation() {
+    let startX = 0;
+    let startY = 0;
+    let hasTouchStart = false; // タッチ開始フラグ
+    let initialPinchDist = 0;
+    let initialZoom = 1.0;
+    let isPinching = false;
+
+    const dayList = document.getElementById("scheduleList");
+    const monthView = document.getElementById("monthView");
+
+    // 1日画面のスワイプ処理
+    dayList.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        hasTouchStart = true; // 親要素で正しくtouchstartを検知した事を記録
+      }
+    }, { passive: true });
+
+    dayList.addEventListener("touchend", (e) => {
+      // touchstartを検知していない（入力欄タップ等でバブリング抑止された場合）はスワイプ判定しない
+      if (!hasTouchStart) return;
+      hasTouchStart = false;
+
+      if (e.changedTouches.length === 1) {
+        const diffX = e.changedTouches[0].clientX - startX;
+        const diffY = e.changedTouches[0].clientY - startY;
+        
+        // 画面（ビュー領域）の幅の半分以上スワイプされた場合のみ判定
+        const minSwipeDistance = (dayList.clientWidth || window.innerWidth) / 2;
+
+        if (Math.abs(diffX) >= minSwipeDistance && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+          if (diffX < 0) {
+            changeDate(1);
+          } else {
+            changeDate(-1);
+          }
+        }
+      }
+    }, { passive: true });
+
+    // 月画面のタッチ処理（スワイプ ＆ ピンチズーム）
+    monthView.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 2) {
+        isPinching = true;
+        initialPinchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        initialZoom = monthZoomFactor;
+      } else if (e.touches.length === 1) {
+        isPinching = false;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+      }
+    }, { passive: false });
+
+    monthView.addEventListener("touchmove", (e) => {
+      if (e.touches.length === 2 && isPinching) {
+        if (e.cancelable) e.preventDefault();
+        const currentDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        if (initialPinchDist > 0) {
+          let newZoom = initialZoom * (currentDist / initialPinchDist);
+          if (newZoom < 1.0) newZoom = 1.0;
+          if (newZoom > 3.0) newZoom = 3.0; // 上限を3.0倍に拡大
+          monthZoomFactor = newZoom;
+          applyMonthZoom();
+        }
+      }
+    }, { passive: false });
+
+    monthView.addEventListener("touchend", (e) => {
+      if (isPinching) {
+        if (e.touches.length < 2) {
+          isPinching = false;
+        }
+        return;
+      }
+
+      if (e.changedTouches.length === 1) {
+        const diffX = e.changedTouches[0].clientX - startX;
+        const diffY = e.changedTouches[0].clientY - startY;
+
+        // 画面（ビュー領域）の幅の半分以上スワイプされた場合のみ判定
+        const minSwipeDistance = (monthView.clientWidth || window.innerWidth) / 2;
+
+        if (Math.abs(diffX) >= minSwipeDistance && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+          if (diffX < 0) {
+            changeMonth(1);
+          } else {
+            changeMonth(-1);
+          }
+        }
+      }
+    }, { passive: true });
+  }
+
+  function initFormProtections() {
+    preventBubbling(document.getElementById("modalTitleInput"));
+    preventBubbling(document.getElementById("noteTextarea"));
+    preventBubbling(document.getElementById("alarmTimeInput"));
+    preventBubbling(document.getElementById("searchInput"));
+  }
+
+  window.addEventListener("DOMContentLoaded", async () => {
+    loadFontOffset();
+    loadDefaultView();
+    await initDB();
+    initFormProtections();
+    setupSwipeAndZoomNavigation();
+    
+    switchView(defaultView);
+    
+    checkAlarms();
+    setInterval(checkAlarms, 30000);
+  });
+</script>
+</body>
+</html>
