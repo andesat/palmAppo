@@ -209,7 +209,9 @@
     }
 
     .time-label {
-      width: 50px;
+      width: 65px;
+      min-width: 65px;
+      flex-shrink: 0;
       font-weight: bold;
       font-size: 11px;
       color: #2b3a22;
@@ -221,6 +223,7 @@
 
     .event-input-container {
       flex: 1;
+      min-width: 0;
       display: flex;
       align-items: center;
       padding-left: 6px;
@@ -229,6 +232,7 @@
 
     .event-input {
       flex: 1;
+      min-width: 0;
       border: none;
       background: transparent;
       font-family: inherit;
@@ -246,6 +250,24 @@
       border-radius: 3px;
     }
 
+    .action-icon-group {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      gap: 2px;
+    }
+
+    .quick-globe-link {
+      flex-shrink: 0;
+      text-decoration: none;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 2px 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     .note-icon-btn {
       background: transparent;
       border: none;
@@ -253,6 +275,7 @@
       cursor: pointer;
       opacity: 0.3;
       padding: 2px 4px;
+      flex-shrink: 0;
     }
 
     .note-icon-btn.has-note {
@@ -613,6 +636,31 @@
       background: #fff;
     }
 
+    .url-btn-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .url-btn {
+      background: var(--palm-btn);
+      border: 1px solid var(--palm-border);
+      color: #fff;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 4px;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .url-btn:active {
+      background: var(--palm-btn-active);
+    }
+
     .note-footer {
       padding-top: 6px;
       display: flex;
@@ -787,11 +835,12 @@
 
         <div class="prop-group">
           <label class="prop-label" for="modalTitleInput">件名 (予定)</label>
-          <input type="text" class="prop-input" id="modalTitleInput" placeholder="件名を入力...">
+          <input type="text" class="prop-input" id="modalTitleInput" placeholder="件名を入力..." oninput="updateUrlButtons()">
         </div>
         <div class="prop-group flex-1">
           <label class="prop-label" for="noteTextarea">詳細メモ</label>
-          <textarea class="note-textarea" id="noteTextarea" placeholder="ここに詳細なメモを入力..."></textarea>
+          <textarea class="note-textarea" id="noteTextarea" placeholder="ここに詳細なメモを入力..." oninput="updateUrlButtons()"></textarea>
+          <div class="url-btn-container" id="urlBtnContainer"></div>
         </div>
       </div>
       <div class="note-footer">
@@ -897,6 +946,14 @@
   let clipboardData = null; // { title: "", note: "", marker: null }
 
   const WEEK_DAYS = ['日', '月', '火', '水', '木', '金', '土'];
+
+  // URL抽出ヘルパー関数
+  function extractUrls(text) {
+    if (!text) return [];
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const matches = text.match(urlRegex);
+    return matches ? Array.from(new Set(matches)) : [];
+  }
 
   // 入力要素からの操作イベントバブリング伝播停止
   function preventBubbling(element) {
@@ -1155,15 +1212,11 @@
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
-          await navigator.share({
-            files: [file]
-          });
+          await navigator.share({ files: [file] });
           updateStatus(`JSON共有完了: ${fileName}`);
           return;
         } catch (shareErr) {
-          if (shareErr.name === 'AbortError') {
-            return;
-          }
+          if (shareErr.name === 'AbortError') return;
         }
       }
 
@@ -1503,13 +1556,31 @@
 
       input.onchange = (e) => saveTimeSlotEvent(evtId, currentDate, timeStr, e.target.value);
 
+      // アクションアイコン群 (URL地球儀ボタン 🌐 & メモアイコン 📝)
+      const actionGroup = document.createElement("div");
+      actionGroup.className = "action-icon-group";
+
+      const urls = extractUrls((evt ? evt.title : "") + " " + (evt ? evt.note : ""));
+      if (urls.length > 0) {
+        const globeLink = document.createElement("a");
+        globeLink.className = "quick-globe-link";
+        globeLink.href = urls[0];
+        globeLink.target = "_blank";
+        globeLink.rel = "noopener noreferrer";
+        globeLink.innerHTML = "🌐";
+        globeLink.title = `URLを開く: ${urls[0]}`;
+        preventBubbling(globeLink);
+        actionGroup.appendChild(globeLink);
+      }
+
       const noteBtn = document.createElement("button");
       noteBtn.className = "note-icon-btn" + (evt && (evt.note || evt.alarmEnabled) ? " has-note" : "");
       noteBtn.innerHTML = evt && evt.alarmEnabled ? "⚠️" : (evt && evt.note ? "📝" : "📄");
       noteBtn.onclick = () => openNoteModal(evtId, timeStr, input.value);
 
+      actionGroup.appendChild(noteBtn);
       inputContainer.appendChild(input);
-      inputContainer.appendChild(noteBtn);
+      inputContainer.appendChild(actionGroup);
 
       slotDiv.appendChild(timeLabel);
       slotDiv.appendChild(inputContainer);
@@ -1813,7 +1884,30 @@
     alarmContainer.style.display = (evt && evt.alarmEnabled) ? "block" : "none";
     alarmInput.value = (evt && evt.alarmTime) ? evt.alarmTime : `${modalContext.date}T${modalContext.time}`;
 
+    updateUrlButtons();
     document.getElementById("noteModal").style.display = "flex";
+  }
+
+  function updateUrlButtons() {
+    const titleVal = document.getElementById("modalTitleInput").value || "";
+    const noteVal = document.getElementById("noteTextarea").value || "";
+    const container = document.getElementById("urlBtnContainer");
+    if (!container) return;
+
+    const urls = extractUrls(titleVal + " " + noteVal);
+    container.innerHTML = "";
+
+    urls.forEach((url, idx) => {
+      const btn = document.createElement("a");
+      btn.className = "url-btn";
+      btn.href = url;
+      btn.target = "_blank";
+      btn.rel = "noopener noreferrer";
+      btn.innerHTML = `🌐 リンク${urls.length > 1 ? (idx + 1) : ''}`;
+      btn.title = url;
+      preventBubbling(btn);
+      container.appendChild(btn);
+    });
   }
 
   function toggleAlarmSetting() {
@@ -2058,7 +2152,7 @@
   function setupSwipeAndZoomNavigation() {
     let startX = 0;
     let startY = 0;
-    let hasTouchStart = false; // タッチ開始フラグ
+    let hasTouchStart = false;
     let initialPinchDist = 0;
     let initialZoom = 1.0;
     let isPinching = false;
@@ -2071,110 +2165,89 @@
       if (e.touches.length === 1) {
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
-        hasTouchStart = true; // 親要素で正しくtouchstartを検知した事を記録
+        hasTouchStart = true;
       }
     }, { passive: true });
 
     dayList.addEventListener("touchend", (e) => {
-      // touchstartを検知していない（入力欄タップ等でバブリング抑止された場合）はスワイプ判定しない
       if (!hasTouchStart) return;
       hasTouchStart = false;
 
-      if (e.changedTouches.length === 1) {
-        const diffX = e.changedTouches[0].clientX - startX;
-        const diffY = e.changedTouches[0].clientY - startY;
-        
-        // 画面（ビュー領域）の幅の半分以上スワイプされた場合のみ判定
-        const minSwipeDistance = (dayList.clientWidth || window.innerWidth) / 2;
+      const touch = e.changedTouches[0];
+      const diffX = touch.clientX - startX;
+      const diffY = touch.clientY - startY;
 
-        if (Math.abs(diffX) >= minSwipeDistance && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
-          if (diffX < 0) {
-            changeDate(1);
-          } else {
-            changeDate(-1);
-          }
-        }
+      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+        if (diffX > 0) changeDate(-1);
+        else changeDate(1);
       }
-    }, { passive: true });
+    });
 
-    // 月画面のタッチ処理（スワイプ ＆ ピンチズーム）
+    // 月画面のスワイプ & ピンチズーム処理
     monthView.addEventListener("touchstart", (e) => {
-      if (e.touches.length === 2) {
+      if (e.touches.length === 1) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        hasTouchStart = true;
+        isPinching = false;
+      } else if (e.touches.length === 2) {
+        hasTouchStart = false;
         isPinching = true;
         initialPinchDist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
         );
         initialZoom = monthZoomFactor;
-      } else if (e.touches.length === 1) {
-        isPinching = false;
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
       }
-    }, { passive: false });
+    }, { passive: true });
 
     monthView.addEventListener("touchmove", (e) => {
-      if (e.touches.length === 2 && isPinching) {
-        if (e.cancelable) e.preventDefault();
+      if (isPinching && e.touches.length === 2) {
         const currentDist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
         );
         if (initialPinchDist > 0) {
-          let newZoom = initialZoom * (currentDist / initialPinchDist);
-          if (newZoom < 1.0) newZoom = 1.0;
-          if (newZoom > 3.0) newZoom = 3.0; // 上限を3.0倍に拡大
-          monthZoomFactor = newZoom;
+          const scale = currentDist / initialPinchDist;
+          monthZoomFactor = Math.min(Math.max(initialZoom * scale, 1.0), 3.0);
           applyMonthZoom();
         }
       }
-    }, { passive: false });
+    }, { passive: true });
 
     monthView.addEventListener("touchend", (e) => {
       if (isPinching) {
-        if (e.touches.length < 2) {
-          isPinching = false;
-        }
+        if (e.touches.length === 0) isPinching = false;
         return;
       }
+      if (!hasTouchStart) return;
+      hasTouchStart = false;
 
-      if (e.changedTouches.length === 1) {
-        const diffX = e.changedTouches[0].clientX - startX;
-        const diffY = e.changedTouches[0].clientY - startY;
+      const touch = e.changedTouches[0];
+      const diffX = touch.clientX - startX;
+      const diffY = touch.clientY - startY;
 
-        // 画面（ビュー領域）の幅の半分以上スワイプされた場合のみ判定
-        const minSwipeDistance = (monthView.clientWidth || window.innerWidth) / 2;
-
-        if (Math.abs(diffX) >= minSwipeDistance && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
-          if (diffX < 0) {
-            changeMonth(1);
-          } else {
-            changeMonth(-1);
-          }
-        }
+      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+        if (diffX > 0) changeMonth(-1);
+        else changeMonth(1);
       }
-    }, { passive: true });
+    });
   }
 
-  function initFormProtections() {
-    preventBubbling(document.getElementById("modalTitleInput"));
-    preventBubbling(document.getElementById("noteTextarea"));
-    preventBubbling(document.getElementById("alarmTimeInput"));
-    preventBubbling(document.getElementById("searchInput"));
-  }
-
-  window.addEventListener("DOMContentLoaded", async () => {
-    loadFontOffset();
+  // アプリ起動処理
+  window.onload = async () => {
     loadDefaultView();
-    await initDB();
-    initFormProtections();
+    loadFontOffset();
     setupSwipeAndZoomNavigation();
-    
-    switchView(defaultView);
-    
-    checkAlarms();
-    setInterval(checkAlarms, 30000);
-  });
+
+    try {
+      await initDB();
+      switchView(defaultView);
+      setInterval(checkAlarms, 10000);
+    } catch (err) {
+      console.error("DB初期化失敗:", err);
+    }
+  };
 </script>
 </body>
 </html>
