@@ -209,14 +209,14 @@
     }
 
     .time-label {
-      width: 65px;
-      min-width: 65px;
+      width: 32px;
+      min-width: 32px;
       flex-shrink: 0;
       font-weight: bold;
       font-size: 11px;
       color: #2b3a22;
       border-right: 1px solid var(--palm-border);
-      padding-right: 4px;
+      padding-right: 3px;
       text-align: center;
       pointer-events: none;
     }
@@ -339,7 +339,6 @@
       background-color: var(--sat-bg);
     }
 
-    /* 休日変更オーバーライド用スタイル */
     .day-cell.holiday-off {
       background-color: #ffffff !important;
       color: var(--palm-text) !important;
@@ -366,7 +365,6 @@
       align-self: center;
     }
 
-    /* 月画面の予定リスト表示 */
     .month-event-list {
       width: 100%;
       margin-top: 2px;
@@ -390,7 +388,7 @@
       flex-shrink: 0;
     }
 
-    /* 予定一覧（検索）・仕事一覧ビュー */
+    /* 予定一覧・仕事一覧ビュー */
     .memo-view, .work-view {
       flex: 1;
       display: none;
@@ -400,11 +398,6 @@
       background: var(--palm-screen);
     }
 
-    .work-item-content {
-      font-size: 13px;
-    }
-
-    /* 検索バーとコピーボタン */
     .search-bar-container {
       display: flex;
       gap: 6px;
@@ -449,24 +442,27 @@
     .memo-item-container {
       flex: 1;
       overflow-y: auto;
+      /* スクロール調整用 */
+      position: relative; 
     }
 
+    /* 左右を適度に詰め、予定が多く表示されるようにパディング等を調整 */
     .memo-item {
       background: rgba(255,255,255,0.4);
       border: 1px solid var(--palm-border);
       border-radius: 5px;
-      padding: 6px 8px;
-      margin-bottom: 6px;
+      padding: 4px 6px; 
+      margin-bottom: 4px;
       cursor: pointer;
+      position: relative; /* ドラッグ時の基準用 */
     }
 
     .memo-item:active {
       background: rgba(255,255,255,0.8);
     }
 
-    /* 1行表示用のスタイル */
     .memo-item.single-line {
-      padding: 6px 8px;
+      padding: 4px 6px;
     }
 
     .single-line-content {
@@ -678,7 +674,7 @@
       cursor: pointer;
     }
 
-    /* 長押しコンテキストメニュー / ダイアログ Overlay */
+    /* 長押しコンテキストメニュー */
     .context-menu-overlay {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -791,7 +787,7 @@
       <div class="month-grid" id="monthGrid"></div>
     </div>
 
-    <!-- 3. 予定一覧ビュー（旧メモ一覧＋検索・コピー機能） -->
+    <!-- 3. 予定一覧ビュー -->
     <div class="memo-view" id="memoView">
       <div class="search-bar-container">
         <input type="text" id="searchInput" class="search-input" placeholder="🔍 検索語を入力..." oninput="renderMemoView()">
@@ -817,14 +813,22 @@
               <input type="checkbox" id="alarmCheckbox" onchange="toggleAlarmSetting()"> アラート
             </label>
           </div>
-          <div class="prop-value-text" id="modalDateTime">---</div>
+          <div id="modalDateTime" style="display: flex; align-items: center; gap: 6px; padding: 2px 0;">
+            <input type="date" id="modalDateInput" class="prop-input" style="width: auto; padding: 4px;" onchange="updateModalDayOfWeek()">
+            <span id="modalDayOfWeek" style="font-size: 14px; font-weight: bold;"></span>
+            <div style="display: flex; align-items: center; gap: 2px;">
+              <select id="modalTimeInput" class="prop-input" style="width: auto; padding: 4px;">
+                <!-- JavaScriptで生成 -->
+              </select>
+              <span style="font-size: 13px; font-weight: bold;">時</span>
+            </div>
+          </div>
           <div id="alarmTimeContainer" style="display: none; margin-top: 4px; background: rgba(0,0,0,0.05); padding: 6px; border-radius: 4px;">
             <label class="prop-label" style="font-size: 10px; display: block; margin-bottom: 2px;">アラート日時指定</label>
             <input type="datetime-local" id="alarmTimeInput" class="prop-input" style="font-size: 12px; padding: 4px;">
           </div>
         </div>
 
-        <!-- マーカー選択行 -->
         <div class="marker-row">
           <div class="marker-selector">
             <span class="prop-label" style="margin-right: 2px;">マーカー</span>
@@ -875,7 +879,6 @@
       <div class="context-menu" style="width: 260px; padding: 14px; text-align: center;" onclick="event.stopPropagation()">
         <div style="font-weight: bold; font-size: 13px; margin-bottom: 12px; color: var(--palm-header);">⚙️ アプリ設定</div>
         
-        <!-- 起動画面の選択メニュー -->
         <div style="font-size: 11px; font-weight: bold; color: var(--palm-header); margin-bottom: 6px; text-align: left;">【起動時の画面】</div>
         <div style="display: flex; justify-content: space-around; font-size: 12px; margin-bottom: 14px; background: rgba(0,0,0,0.05); padding: 6px; border-radius: 4px;">
           <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
@@ -886,7 +889,6 @@
           </label>
         </div>
 
-        <!-- フォントサイズ設定 -->
         <div style="font-size: 11px; font-weight: bold; color: var(--palm-header); margin-bottom: 6px; text-align: left;">【フォントサイズ設定】</div>
         <div style="font-size: 12px; margin-bottom: 6px;">拡大設定: +<span id="fontOffsetVal">0</span> pt</div>
         <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 6px;">
@@ -920,34 +922,42 @@
 <script>
   let currentDate = getTodayString();
   let currentView = 'day';
-  let defaultView = 'day'; // 起動時のデフォルト画面設定
+  let defaultView = 'day';
   let db = null;
   
-  // 保存競合・二重実行防止フラグ
   let isSaving = false;
-  
-  // モーダル用ローカルコンテキスト
   let modalContext = null; 
-  
   let scrollToTimeOnLoad = null;
   let activeAlarmEvent = null;
-
-  // 月画面のピンチズーム倍率
   let monthZoomFactor = 1.0;
-
-  // フォントサイズオフセット管理
   let fontOffset = 0;
   const MAX_FONT_OFFSET = 15;
-
-  // コピー対象データ保持用
   let currentFilteredEvents = [];
+  let clipboardData = null;
 
-  // クリップボード用メモリ
-  let clipboardData = null; // { title: "", note: "", marker: null }
+  // リストのドラッグ＆ドロップ状態管理フラグ
+  window._isDraggingList = false;
 
   const WEEK_DAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
-  // URL抽出ヘルパー関数
+  // ★ サスペンド復帰時のフリーズ対策（イベントリスナー追加）
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      isSaving = false;
+      window._isDraggingList = false;
+      showSavingStatus(false);
+      
+      // ドラッグ中のゴースト要素が残っていれば削除
+      document.querySelectorAll('.dragging').forEach(el => el.remove());
+      
+      if (db) {
+        refreshCurrentView();
+      } else {
+        initDB().then(() => refreshCurrentView());
+      }
+    }
+  });
+
   function extractUrls(text) {
     if (!text) return [];
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -955,17 +965,20 @@
     return matches ? Array.from(new Set(matches)) : [];
   }
 
-  // 入力要素からの操作イベントバブリング伝播停止
   function preventBubbling(element) {
     if (!element) return;
-    element.addEventListener('touchstart', (e) => e.stopPropagation());
-    element.addEventListener('mousedown', (e) => e.stopPropagation());
+    element.addEventListener('touchstart', (e) => {
+        if (!window._isDraggingList) e.stopPropagation();
+    });
+    element.addEventListener('mousedown', (e) => {
+        if (!window._isDraggingList) e.stopPropagation();
+    });
   }
 
   function triggerViewAnimation(element) {
     if (!element) return;
     element.classList.remove("view-fade");
-    void element.offsetWidth; // リフロー発生によるアニメーション再適用
+    void element.offsetWidth;
     element.classList.add("view-fade");
   }
 
@@ -1003,9 +1016,6 @@
     return `${y}/${m}/${day}<span${colorStyle}>${w}</span>`;
   }
 
-  // --------------------------------------------------
-  // 月画面のピンチズーム適用
-  // --------------------------------------------------
   function applyMonthZoom() {
     const grid = document.getElementById("monthGrid");
     const monthView = document.getElementById("monthView");
@@ -1026,9 +1036,6 @@
     }
   }
 
-  // --------------------------------------------------
-  // 起動時のデフォルト画面設定管理
-  // --------------------------------------------------
   function loadDefaultView() {
     const saved = localStorage.getItem("palm_default_view");
     if (saved === 'day' || saved === 'month') {
@@ -1045,9 +1052,6 @@
     }
   }
 
-  // --------------------------------------------------
-  // フォントサイズ設定機能
-  // --------------------------------------------------
   function loadFontOffset() {
     const saved = localStorage.getItem("palm_font_offset");
     if (saved !== null) {
@@ -1195,9 +1199,6 @@
     });
   }
 
-  // --------------------------------------------------
-  // JSONデータのエクスポート (⬆️保存) & インポート (⬇️読込)
-  // --------------------------------------------------
   async function exportJSONData() {
     try {
       const allEvents = await getAllEvents();
@@ -1283,9 +1284,6 @@
     reader.readAsText(file);
   }
 
-  // --------------------------------------------------
-  // 3.1 時間帯セル（タイムスロット入力欄）の確定時保存処理
-  // --------------------------------------------------
   async function saveTimeSlotEvent(id, dateStr, timeStr, newTitle) {
     if (isSaving) return;
     isSaving = true;
@@ -1325,9 +1323,6 @@
     }
   }
 
-  // --------------------------------------------------
-  // 長押し検知（Long Press）実装
-  // --------------------------------------------------
   let longPressTimer = null;
 
   function attachLongPressEvents(element, evtObj, timeStr) {
@@ -1351,7 +1346,6 @@
     element.addEventListener('mouseleave', cancelHandler);
   }
 
-  // 月画面用長押しトグル処理
   async function toggleHolidayOverride(dateStr, dayOfWeek) {
     const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
     const holidayId = "holiday_" + dateStr;
@@ -1414,7 +1408,6 @@
     };
   }
 
-  // コンテキストメニュー（ポップアップ）表示
   function openContextMenu(evtObj, timeStr) {
     const overlay = document.getElementById("contextMenuOverlay");
     const titleEl = document.getElementById("contextMenuTitle");
@@ -1502,9 +1495,6 @@
     }
   }
 
-  // --------------------------------------------------
-  // 1. 日予定ビュー描画
-  // --------------------------------------------------
   async function renderDayView() {
     document.getElementById("dateDisplay").innerHTML = formatDateForHeader(currentDate);
     const listContainer = document.getElementById("scheduleList");
@@ -1541,7 +1531,7 @@
 
       const timeLabel = document.createElement("div");
       timeLabel.className = "time-label";
-      timeLabel.textContent = timeStr;
+      timeLabel.textContent = String(h); // 時刻のみ表示
 
       const inputContainer = document.createElement("div");
       inputContainer.className = "event-input-container";
@@ -1556,7 +1546,6 @@
 
       input.onchange = (e) => saveTimeSlotEvent(evtId, currentDate, timeStr, e.target.value);
 
-      // アクションアイコン群 (URL地球儀ボタン 🌐 & メモアイコン 📝)
       const actionGroup = document.createElement("div");
       actionGroup.className = "action-icon-group";
 
@@ -1601,9 +1590,6 @@
     triggerViewAnimation(listContainer);
   }
 
-  // --------------------------------------------------
-  // 2. 月予定ビュー描画
-  // --------------------------------------------------
   async function renderMonthView() {
     document.getElementById("dateDisplay").textContent = currentDate.substring(0, 7) + " 📅";
     const grid = document.getElementById("monthGrid");
@@ -1634,7 +1620,6 @@
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    // 週数（行数）を計算して動的に全セル均等分割を適用
     const totalWeeks = Math.ceil((firstDay + daysInMonth) / 7);
     grid.style.gridTemplateRows = `repeat(${totalWeeks}, 1fr)`;
 
@@ -1698,9 +1683,7 @@
     applyMonthZoom();
   }
 
-  // --------------------------------------------------
-  // 3. 予定一覧ビュー描画（全予定リスト・検索・絞り込み表示）
-  // --------------------------------------------------
+  // ★ 一覧画面のレンダリング（アイコン削除・分の削除・ジャンプ先変更等）
   async function renderMemoView() {
     document.getElementById("dateDisplay").textContent = "📋 予定一覧";
     const memoContainer = document.getElementById("memoView");
@@ -1739,18 +1722,25 @@
     validEvents.forEach(evt => {
       const item = document.createElement("div");
       item.className = "memo-item";
+      
+      // データ属性を付与（ドラッグ処理用）
+      item.dataset.evtId = evt.id;
+      item.dataset.evtDate = evt.date;
+      item.dataset.evtTime = evt.time;
 
       const hasNote = evt.note && evt.note.trim() !== "";
-      const markerSymbol = evt.marker === "yellow" ? "🟨 " : (evt.marker === "red" ? "🟥 " : "");
-      const alarmSymbol = evt.alarmEnabled ? "⚠️ " : "";
       const titleDisplay = evt.title && evt.title.trim() ? evt.title : "（件名なし）";
+      
+      // 時刻の分を削除
+      const timeH = parseInt(evt.time.split(":")[0], 10);
+      const dateText = `${formatDateWithDay(evt.date)} ${timeH}時`;
 
       if (hasNote) {
         const firstLineNote = evt.note.trim().split('\n')[0];
         item.innerHTML = `
-          <div class="single-line-content" style="margin-bottom: 3px;">
-            <span class="schedule-date-time">📅 ${formatDateWithDay(evt.date)} ${evt.time}</span>
-            <span class="schedule-title">${alarmSymbol}${markerSymbol}${titleDisplay}</span>
+          <div class="single-line-content" style="margin-bottom: 2px;">
+            <span class="schedule-date-time">${dateText}</span>
+            <span class="schedule-title">${titleDisplay}</span>
           </div>
           <div class="memo-item-preview">📝 ${firstLineNote}</div>
         `;
@@ -1758,23 +1748,35 @@
         item.classList.add("single-line");
         item.innerHTML = `
           <div class="single-line-content">
-            <span class="schedule-date-time">📅 ${formatDateWithDay(evt.date)} ${evt.time}</span>
-            <span class="schedule-title">${alarmSymbol}${markerSymbol}${titleDisplay}</span>
+            <span class="schedule-date-time">${dateText}</span>
+            <span class="schedule-title">${titleDisplay}</span>
           </div>
         `;
       }
 
-      item.onclick = () => {
+      // タップでプロパティ編集モーダルを開く
+      item.onclick = (e) => {
+        if (window._isDraggingList) return;
         currentDate = evt.date;
-        scrollToTimeOnLoad = evt.time;
-        switchView('day');
+        openNoteModal(evt.id, evt.time, evt.title);
       };
 
       filteredListContainer.appendChild(item);
     });
+    
+    // 今日の予定が上にくるようスクロール位置調整
+    setTimeout(() => {
+      const todayStr = getTodayString();
+      const items = Array.from(filteredListContainer.children);
+      for (const el of items) {
+        if (el.dataset.evtDate && el.dataset.evtDate >= todayStr) {
+          filteredListContainer.scrollTop = el.offsetTop - filteredListContainer.offsetTop;
+          break;
+        }
+      }
+    }, 100);
   }
 
-  // 絞り込み結果のテキストコピー機能
   async function copyFilteredSchedules() {
     if (!currentFilteredEvents || currentFilteredEvents.length === 0) {
       alert("コピーする予定がありません。");
@@ -1783,8 +1785,8 @@
 
     const textLines = currentFilteredEvents.map(evt => {
       const title = evt.title && evt.title.trim() ? evt.title.trim() : "（件名なし）";
-      const markerSymbol = evt.marker === "yellow" ? "🟨 " : (evt.marker === "red" ? "🟥 " : "");
-      let line = `${formatDateWithDay(evt.date)} ${evt.time} ${markerSymbol}${title}`;
+      const timeH = parseInt(evt.time.split(":")[0], 10);
+      let line = `${formatDateWithDay(evt.date)} ${timeH}時 ${title}`;
       if (evt.note && evt.note.trim()) {
         line += `\n📝 ${evt.note.trim()}`;
       }
@@ -1811,9 +1813,7 @@
     }
   }
 
-  // --------------------------------------------------
-  // 3.5 仕事一覧ビュー描画
-  // --------------------------------------------------
+  // ★ 仕事一覧画面のレンダリング（背景色適用・アイコン削除・分の削除）
   async function renderWorkView() {
     document.getElementById("dateDisplay").textContent = "💼 仕事一覧";
     const workContainer = document.getElementById("workView");
@@ -1824,7 +1824,7 @@
     const workEvents = allEvents.filter(e => (!e.id || !e.id.startsWith("holiday_")) && (e.marker === "yellow" || e.marker === "red"));
 
     if (workEvents.length === 0) {
-      workContainer.innerHTML = `<div class="empty-memo-msg">💼 マーカー（🟨 / 🟥）のついた予定はありません。</div>`;
+      workContainer.innerHTML = `<div class="empty-memo-msg">💼 マーカーのついた予定はありません。</div>`;
       return;
     }
 
@@ -1833,20 +1833,31 @@
     workEvents.forEach(evt => {
       const item = document.createElement("div");
       item.className = "memo-item";
-      item.style.padding = "8px 10px";
+      
+      // 背景色の適用
+      if (evt.marker === "yellow") {
+        item.style.backgroundColor = "rgba(255, 235, 59, 0.45)";
+      } else if (evt.marker === "red") {
+        item.style.backgroundColor = "rgba(244, 67, 54, 0.35)";
+      }
 
-      const markerBadge = evt.marker === "yellow" ? "🟨" : "🟥";
+      item.dataset.evtId = evt.id;
+      item.dataset.evtDate = evt.date;
+      item.dataset.evtTime = evt.time;
+
       const titleText = evt.title && evt.title.trim() ? evt.title : "（件名なし）";
+      const timeH = parseInt(evt.time.split(":")[0], 10);
+      const dateText = `${formatDateWithDay(evt.date)} ${timeH}時`;
 
       item.innerHTML = `
         <div class="work-item-content" style="display: flex; align-items: center; gap: 8px; width: 100%; font-weight: bold;">
-          <span>${markerBadge}</span>
-          <span class="schedule-date-time" style="color: #2b3a22; opacity: 0.9; white-space: nowrap;">${formatDateWithDay(evt.date)} ${evt.time}</span>
+          <span class="schedule-date-time" style="color: #2b3a22; opacity: 0.9; white-space: nowrap;">${dateText}</span>
           <span class="schedule-title" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; color: #111;">${titleText}</span>
         </div>
       `;
 
-      item.onclick = () => {
+      item.onclick = (e) => {
+        if (window._isDraggingList) return;
         currentDate = evt.date;
         openNoteModal(evt.id, evt.time, evt.title);
       };
@@ -1855,9 +1866,24 @@
     });
   }
 
-  // --------------------------------------------------
-  // 3.2 詳細編集モーダル画面
-  // --------------------------------------------------
+  // 新規追加：予定プロパティモーダル用曜日更新関数
+  function updateModalDayOfWeek() {
+    const dateVal = document.getElementById("modalDateInput").value;
+    if (dateVal) {
+      const d = new Date(dateVal + 'T00:00:00');
+      const w = WEEK_DAYS[d.getDay()];
+      const dayEl = document.getElementById("modalDayOfWeek");
+      dayEl.textContent = `(${w})`;
+      if (d.getDay() === 0) {
+        dayEl.style.color = "var(--sun-color)";
+      } else if (d.getDay() === 6) {
+        dayEl.style.color = "var(--sat-color)";
+      } else {
+        dayEl.style.color = "inherit";
+      }
+    }
+  }
+
   async function openNoteModal(evtId, timeStr, currentTitle) {
     modalContext = {
       id: evtId,
@@ -1866,7 +1892,20 @@
     };
 
     document.getElementById("noteTitleHeader").textContent = `📝 予定プロパティ`;
-    document.getElementById("modalDateTime").textContent = `${formatDateWithDay(modalContext.date)} ${modalContext.time}`;
+
+    const timeSelect = document.getElementById("modalTimeInput");
+    if (timeSelect.options.length === 0) {
+      for (let i = 0; i < 24; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = i;
+        timeSelect.appendChild(opt);
+      }
+    }
+    
+    document.getElementById("modalDateInput").value = modalContext.date;
+    updateModalDayOfWeek(); // 曜日テキストの更新を追加
+    document.getElementById("modalTimeInput").value = parseInt(modalContext.time.split(":")[0], 10);
 
     const evt = await getEventById(modalContext.id);
 
@@ -1936,7 +1975,6 @@
     }
   }
 
-  // 「完了 / 保存」ボタン押下時の明示的保存処理
   async function saveAndCloseNote() {
     if (isSaving) return;
     if (!modalContext) {
@@ -1948,6 +1986,31 @@
     showSavingStatus(true);
 
     try {
+      let newDate = document.getElementById("modalDateInput").value;
+      let newTimeH = parseInt(document.getElementById("modalTimeInput").value, 10);
+
+      while (true) {
+        let testTimeStr = String(newTimeH).padStart(2, '0') + ":00";
+        let evts = await getEventsByDate(newDate);
+        let conflictEvt = evts.find(e => e.time === testTimeStr);
+        
+        if (!conflictEvt || conflictEvt.id === modalContext.id) {
+          break; 
+        }
+        
+        newTimeH++;
+        if (newTimeH > 23) {
+          newTimeH = 0;
+          let d = new Date(newDate + "T00:00:00");
+          d.setDate(d.getDate() + 1);
+          newDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+      }
+
+      const finalTimeStr = String(newTimeH).padStart(2, '0') + ":00";
+      const isDateOrTimeChanged = (newDate !== modalContext.date || finalTimeStr !== modalContext.time);
+      const newEvtId = isDateOrTimeChanged ? `evt_${newDate}_${finalTimeStr}` : modalContext.id;
+
       const titleVal = document.getElementById("modalTitleInput").value;
       const noteVal = document.getElementById("noteTextarea").value;
       
@@ -1971,24 +2034,37 @@
           updateStatus("データ削除完了");
         }
       } else {
+        if (isDateOrTimeChanged && existing) {
+          await deleteEventDirect(modalContext.id);
+        }
+
         const eventObj = {
-          id: modalContext.id,
-          date: modalContext.date,
-          time: modalContext.time,
+          id: newEvtId,
+          date: newDate,
+          time: finalTimeStr,
           title: titleTrim,
           note: noteTrim,
           marker: markerVal,
           alarmEnabled: alarmEnabled,
-          alarmTime: alarmTime || `${modalContext.date}T${modalContext.time}`,
+          alarmTime: alarmTime || `${newDate}T${finalTimeStr}`,
           updatedAt: new Date().toISOString()
         };
         await saveEventDirect(eventObj);
         updateStatus("プロパティ保存完了");
       }
 
-      modalContext = null;
       document.getElementById("noteModal").style.display = "none";
-      refreshCurrentView();
+
+      if (!isContentEmpty) {
+        currentDate = newDate;
+        scrollToTimeOnLoad = finalTimeStr;
+      } else {
+        currentDate = modalContext.date; 
+      }
+      modalContext = null;
+      
+      switchView('day');
+
     } catch (err) {
       console.error(err);
     } finally {
@@ -2009,9 +2085,6 @@
     else if (currentView === 'work') renderWorkView();
   }
 
-  // --------------------------------------------------
-  // 4.2 アラート通知機能・制御
-  // --------------------------------------------------
   async function checkAlarms() {
     if (activeAlarmEvent) return;
     if (!db) return;
@@ -2084,9 +2157,6 @@
     openNoteModal(targetEvt.id, targetEvt.time, targetEvt.title);
   }
 
-  // --------------------------------------------------
-  // 5. ビュー切替 & ナビゲーション
-  // --------------------------------------------------
   function switchView(viewName) {
     currentView = viewName;
     document.getElementById("tabDay").className = "tab-btn" + (viewName === 'day' ? " active" : "");
@@ -2146,9 +2216,6 @@
     document.getElementById("saveStatus").style.color = saving ? "#ff8c00" : "#cfdcc5";
   }
 
-  // --------------------------------------------------
-  // タッチジェスチャー対応（スワイプ ＆ ピンチズーム）
-  // --------------------------------------------------
   function setupSwipeAndZoomNavigation() {
     let startX = 0;
     let startY = 0;
@@ -2156,11 +2223,11 @@
     let initialPinchDist = 0;
     let initialZoom = 1.0;
     let isPinching = false;
+    let lastCenterY = 0; // 追加
 
     const dayList = document.getElementById("scheduleList");
     const monthView = document.getElementById("monthView");
 
-    // 1日画面のスワイプ処理
     dayList.addEventListener("touchstart", (e) => {
       if (e.touches.length === 1) {
         startX = e.touches[0].clientX;
@@ -2183,7 +2250,6 @@
       }
     });
 
-    // 月画面のスワイプ & ピンチズーム処理
     monthView.addEventListener("touchstart", (e) => {
       if (e.touches.length === 1) {
         startX = e.touches[0].clientX;
@@ -2198,22 +2264,49 @@
           e.touches[0].clientY - e.touches[1].clientY
         );
         initialZoom = monthZoomFactor;
+        lastCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2; // 追加
       }
     }, { passive: true });
 
     monthView.addEventListener("touchmove", (e) => {
       if (isPinching && e.touches.length === 2) {
+        e.preventDefault(); // デフォルトスクロールを無効化
+        
+        const currentCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
         const currentDist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
         );
+        
         if (initialPinchDist > 0) {
           const scale = currentDist / initialPinchDist;
+          const oldZoom = monthZoomFactor;
           monthZoomFactor = Math.min(Math.max(initialZoom * scale, 1.0), 3.0);
+          
+          const rect = monthView.getBoundingClientRect();
+          const offsetY = currentCenterY - rect.top;
+          
+          const monthHeader = monthView.querySelector(".month-header");
+          const headerHeight = monthHeader ? monthHeader.offsetHeight : 25;
+          const nonZoomHeight = headerHeight + 6; 
+          
+          const contentY_in_grid = monthView.scrollTop + offsetY - nonZoomHeight;
+          
           applyMonthZoom();
+          
+          // ズーム比が変わった場合、中点を中心に維持するスクロール位置補正
+          if (monthZoomFactor !== oldZoom && contentY_in_grid > 0) {
+             const zoomRatio = monthZoomFactor / oldZoom;
+             const new_contentY_in_grid = contentY_in_grid * zoomRatio;
+             monthView.scrollTop = new_contentY_in_grid + nonZoomHeight - offsetY;
+          }
+          
+          // 2本指での上下スクロール分を加算
+          monthView.scrollTop += (lastCenterY - currentCenterY);
         }
+        lastCenterY = currentCenterY;
       }
-    }, { passive: true });
+    }, { passive: false }); // passive: false に変更
 
     monthView.addEventListener("touchend", (e) => {
       if (isPinching) {
@@ -2234,11 +2327,250 @@
     });
   }
 
+  // ★ リスト内のアイテムドラッグ入れ替えに伴うデータ更新
+  async function handleDropUpdate(droppedItem, container) {
+    const evtId = droppedItem.dataset.evtId;
+    const evt = await getEventById(evtId);
+    if (!evt) return;
+
+    const prevItem = droppedItem.previousElementSibling;
+    let targetDate, targetTimeH;
+
+    if (prevItem) {
+      targetDate = prevItem.dataset.evtDate;
+      let prevTimeStr = prevItem.dataset.evtTime || "00:00";
+      targetTimeH = parseInt(prevTimeStr.split(":")[0], 10) + 1;
+    } else {
+      const nextItem = droppedItem.nextElementSibling;
+      if (nextItem) {
+        targetDate = nextItem.dataset.evtDate;
+        let nextTimeStr = nextItem.dataset.evtTime || "01:00";
+        targetTimeH = parseInt(nextTimeStr.split(":")[0], 10) - 1;
+        if(targetTimeH < 0) targetTimeH = 0;
+      } else {
+        targetDate = evt.date;
+        targetTimeH = parseInt(evt.time.split(":")[0], 10);
+      }
+    }
+
+    let newDate = targetDate;
+    let newTimeH = targetTimeH;
+    
+    if (newTimeH > 23) {
+      newTimeH = 0;
+      let d = new Date(newDate + "T00:00:00");
+      d.setDate(d.getDate() + 1);
+      newDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    while (true) {
+      let testTimeStr = String(newTimeH).padStart(2, '0') + ":00";
+      let evts = await getEventsByDate(newDate);
+      let conflictEvt = evts.find(e => e.time === testTimeStr);
+      
+      if (!conflictEvt || conflictEvt.id === evt.id) {
+        break; 
+      }
+      
+      newTimeH++;
+      if (newTimeH > 23) {
+        newTimeH = 0;
+        let d = new Date(newDate + "T00:00:00");
+        d.setDate(d.getDate() + 1);
+        newDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+    }
+
+    const finalTimeStr = String(newTimeH).padStart(2, '0') + ":00";
+    const isChanged = (newDate !== evt.date || finalTimeStr !== evt.time);
+
+    if (isChanged) {
+      const newEvtId = `evt_${newDate}_${finalTimeStr}`;
+      await deleteEventDirect(evt.id);
+      
+      evt.id = newEvtId;
+      evt.date = newDate;
+      evt.time = finalTimeStr;
+      evt.updatedAt = new Date().toISOString();
+      
+      await saveEventDirect(evt);
+      updateStatus(`予定を移動しました`);
+    }
+    
+    refreshCurrentView();
+  }
+
+  // ★ リストのドラッグ＆ドロップ用初期化関数
+  function initListDrag(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    let draggedItem = null;
+    let dragStartY = 0;
+    let dragClone = null;
+    let longPressTimerDrag = null;
+
+    const cancelDrag = () => {
+      clearTimeout(longPressTimerDrag);
+      if (dragClone) {
+        dragClone.remove();
+        dragClone = null;
+      }
+      if (draggedItem) {
+        draggedItem.style.opacity = '1';
+      }
+      draggedItem = null;
+      setTimeout(() => { window._isDraggingList = false; }, 100);
+    };
+
+    container.addEventListener('touchstart', (e) => {
+      const item = e.target.closest('.memo-item');
+      if (!item) return;
+      
+      longPressTimerDrag = setTimeout(() => {
+        window._isDraggingList = true;
+        if (navigator.vibrate) navigator.vibrate(40);
+        
+        draggedItem = item;
+        dragStartY = e.touches[0].clientY;
+        
+        const rect = item.getBoundingClientRect();
+        
+        dragClone = item.cloneNode(true);
+        dragClone.style.position = 'fixed';
+        dragClone.style.top = rect.top + 'px';
+        dragClone.style.left = rect.left + 'px';
+        dragClone.style.width = rect.width + 'px';
+        dragClone.style.zIndex = 1000;
+        dragClone.style.boxShadow = '0 5px 15px rgba(0,0,0,0.5)';
+        dragClone.style.opacity = '0.9';
+        dragClone.style.pointerEvents = 'none';
+        dragClone.style.backgroundColor = getComputedStyle(item).backgroundColor;
+        
+        document.body.appendChild(dragClone);
+        item.style.opacity = '0.3';
+        
+      }, 500);
+    }, { passive: true });
+
+    container.addEventListener('touchmove', (e) => {
+      if (!draggedItem || !dragClone) {
+        clearTimeout(longPressTimerDrag);
+        return;
+      }
+      e.preventDefault();
+      const clientY = e.touches[0].clientY;
+      const diffY = clientY - dragStartY;
+      dragClone.style.transform = `translateY(${diffY}px)`;
+
+      const elements = document.elementsFromPoint(e.touches[0].clientX, clientY);
+      const targetItem = elements.find(el => el.classList && el.classList.contains('memo-item') && el !== draggedItem && el.parentNode === container);
+      
+      if (targetItem) {
+        const targetRect = targetItem.getBoundingClientRect();
+        if (clientY < targetRect.top + targetRect.height / 2) {
+          container.insertBefore(draggedItem, targetItem);
+        } else {
+          container.insertBefore(draggedItem, targetItem.nextSibling);
+        }
+      }
+    }, { passive: false });
+
+    container.addEventListener('touchend', async (e) => {
+      clearTimeout(longPressTimerDrag);
+      if (!draggedItem || !dragClone) {
+        cancelDrag();
+        return;
+      }
+      
+      const itemToUpdate = draggedItem;
+      dragClone.remove();
+      dragClone = null;
+      itemToUpdate.style.opacity = '1';
+      draggedItem = null;
+      
+      await handleDropUpdate(itemToUpdate, container);
+      setTimeout(() => { window._isDraggingList = false; }, 100);
+    });
+    
+    container.addEventListener('touchcancel', cancelDrag);
+
+    // マウス操作（PC向けフォールバック）
+    container.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      const item = e.target.closest('.memo-item');
+      if (!item) return;
+      
+      longPressTimerDrag = setTimeout(() => {
+        window._isDraggingList = true;
+        draggedItem = item;
+        dragStartY = e.clientY;
+        
+        const rect = item.getBoundingClientRect();
+        
+        dragClone = item.cloneNode(true);
+        dragClone.style.position = 'fixed';
+        dragClone.style.top = rect.top + 'px';
+        dragClone.style.left = rect.left + 'px';
+        dragClone.style.width = rect.width + 'px';
+        dragClone.style.zIndex = 1000;
+        dragClone.style.boxShadow = '0 5px 15px rgba(0,0,0,0.5)';
+        dragClone.style.opacity = '0.9';
+        dragClone.style.pointerEvents = 'none';
+        dragClone.style.backgroundColor = getComputedStyle(item).backgroundColor;
+        
+        document.body.appendChild(dragClone);
+        item.style.opacity = '0.3';
+      }, 500);
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!draggedItem || !dragClone) return;
+      e.preventDefault();
+      const clientY = e.clientY;
+      const diffY = clientY - dragStartY;
+      dragClone.style.transform = `translateY(${diffY}px)`;
+
+      const elements = document.elementsFromPoint(e.clientX, clientY);
+      const targetItem = elements.find(el => el.classList && el.classList.contains('memo-item') && el !== draggedItem && el.parentNode === container);
+      
+      if (targetItem) {
+        const targetRect = targetItem.getBoundingClientRect();
+        if (clientY < targetRect.top + targetRect.height / 2) {
+          container.insertBefore(draggedItem, targetItem);
+        } else {
+          container.insertBefore(draggedItem, targetItem.nextSibling);
+        }
+      }
+    }, { passive: false });
+
+    document.addEventListener('mouseup', async (e) => {
+      clearTimeout(longPressTimerDrag);
+      if (!draggedItem || !dragClone) {
+        cancelDrag();
+        return;
+      }
+      
+      const itemToUpdate = draggedItem;
+      dragClone.remove();
+      dragClone = null;
+      itemToUpdate.style.opacity = '1';
+      draggedItem = null;
+      
+      await handleDropUpdate(itemToUpdate, container);
+      setTimeout(() => { window._isDraggingList = false; }, 100);
+    });
+  }
+
   // アプリ起動処理
   window.onload = async () => {
     loadDefaultView();
     loadFontOffset();
     setupSwipeAndZoomNavigation();
+
+    // 一覧および仕事一覧のドラッグ初期化
+    initListDrag('scheduleListFiltered');
+    initListDrag('workView');
 
     try {
       await initDB();
