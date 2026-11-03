@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Palm Datebook v4.2</title>
+  <title>Palm Appointment</title>
   <style>
     :root {
       --palm-bg: #4a4a4a;
@@ -442,11 +442,9 @@
     .memo-item-container {
       flex: 1;
       overflow-y: auto;
-      /* スクロール調整用 */
       position: relative; 
     }
 
-    /* 左右を適度に詰め、予定が多く表示されるようにパディング等を調整 */
     .memo-item {
       background: rgba(255,255,255,0.4);
       border: 1px solid var(--palm-border);
@@ -454,7 +452,7 @@
       padding: 4px 6px; 
       margin-bottom: 4px;
       cursor: pointer;
-      position: relative; /* ドラッグ時の基準用 */
+      position: relative;
     }
 
     .memo-item:active {
@@ -632,6 +630,128 @@
       background: #fff;
     }
 
+    /* 新設：画像追加ボタンエリア & 画像枠 (2列x2行 Grid) */
+    .photo-section {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 4px;
+      background: rgba(0,0,0,0.04);
+      border: 1px solid var(--palm-border);
+      border-radius: 4px;
+      padding: 6px;
+    }
+
+    .photo-btn-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .photo-add-btn {
+      background: var(--palm-btn);
+      border: 1px solid var(--palm-border);
+      color: #fff;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .photo-add-btn:active {
+      background: var(--palm-btn-active);
+    }
+
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    .photo-slot {
+      width: 100%;
+      height: 110px;
+      background: #edf3e8;
+      border: 1px dashed var(--palm-border);
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .photo-slot img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      cursor: pointer;
+      image-rendering: -webkit-optimize-contrast;
+    }
+
+    .photo-text-card {
+      width: 100%;
+      height: 100%;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--palm-text);
+      word-break: break-all;
+      overflow: hidden;
+      background: rgba(255,255,255,0.6);
+    }
+
+    .photo-unsaved-badge {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      background: #cc2222;
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: bold;
+      padding: 1px 5px;
+      border-radius: 3px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .photo-delete-btn {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: rgba(0, 0, 0, 0.65);
+      color: #fff;
+      border: 1px solid #fff;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 3;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .photo-delete-btn:active {
+      background: rgba(200, 0, 0, 0.9);
+    }
+
     .url-btn-container {
       display: flex;
       flex-wrap: wrap;
@@ -690,7 +810,7 @@
       border: 3px solid var(--palm-border);
       border-radius: 8px;
       box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-      width: 220px;
+      width: 230px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -710,7 +830,7 @@
       border: none;
       border-bottom: 1px solid var(--palm-grid-line);
       padding: 12px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: bold;
       color: var(--palm-text);
       cursor: pointer;
@@ -718,6 +838,7 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
+      text-align: center;
     }
 
     .context-menu-btn:last-child {
@@ -730,6 +851,57 @@
 
     .context-menu-btn.delete-btn {
       color: #bb0000;
+    }
+
+    /* 拡大写真プレビュー用 Modal (幅360px、アンチエイリアス表示) */
+    .photo-modal-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 350;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 12px;
+    }
+
+    .photo-modal-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 360px;
+      width: 100%;
+    }
+
+    .photo-modal-img {
+      width: 360px;
+      max-width: 100%;
+      height: auto;
+      border: 2px solid #fff;
+      border-radius: 4px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+      image-rendering: auto;
+      image-rendering: smooth;
+    }
+
+    .photo-modal-info {
+      color: #fff;
+      font-size: 11px;
+      margin-top: 8px;
+      text-align: center;
+      word-break: break-all;
+    }
+
+    .photo-modal-close-btn {
+      margin-top: 12px;
+      background: var(--palm-btn);
+      border: 1px solid #fff;
+      color: #fff;
+      font-weight: bold;
+      padding: 6px 20px;
+      border-radius: 16px;
+      cursor: pointer;
     }
 
     /* ステータスバー */
@@ -770,11 +942,15 @@
         <button class="tab-btn" id="tabWork" onclick="switchView('work')">仕事</button>
       </div>
       <div style="display: flex; gap: 3px;">
-        <button class="sync-io-btn" onclick="triggerImportJSON()" title="JSON読込">⬇️読込</button>
-        <button class="sync-io-btn" onclick="exportJSONData()" title="JSON保存">⬆️保存</button>
+        <button class="sync-io-btn" onclick="triggerImportData()" title="読込">⬇️読込</button>
+        <button class="sync-io-btn" onclick="openExportModal()" title="保存">⬆️保存</button>
       </div>
     </div>
-    <input type="file" id="jsonFileInput" accept=".json" style="display:none;" onchange="importJSONData(event)">
+    <!-- 読込用 (JSON / ZIP 両対応) -->
+    <input type="file" id="importFileInput" accept=".json,.zip" style="display:none;" onchange="importDataFile(event)">
+    <!-- 写真選択用 inputs (カメラ / ライブラリ) -->
+    <input type="file" id="cameraFileInput" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoSelected(event)">
+    <input type="file" id="photoFileInput" accept="image/*" style="display:none;" onchange="handlePhotoSelected(event)">
 
     <!-- 1. 日予定ビュー -->
     <div class="schedule-list" id="scheduleList"></div>
@@ -841,15 +1017,56 @@
           <label class="prop-label" for="modalTitleInput">件名 (予定)</label>
           <input type="text" class="prop-input" id="modalTitleInput" placeholder="件名を入力..." oninput="updateUrlButtons()">
         </div>
+        
         <div class="prop-group flex-1">
           <label class="prop-label" for="noteTextarea">詳細メモ</label>
           <textarea class="note-textarea" id="noteTextarea" placeholder="ここに詳細なメモを入力..." oninput="updateUrlButtons()"></textarea>
           <div class="url-btn-container" id="urlBtnContainer"></div>
         </div>
+
+        <!-- 写真貼り付けエリア (詳細メモの下に新設) -->
+        <div class="photo-section">
+          <div class="photo-btn-bar">
+            <span class="prop-label">📷 添付画像 (最大4枚)</span>
+            <div style="display: flex; gap: 4px;">
+              <button class="photo-add-btn" type="button" onclick="triggerCameraInput()">📷 カメラ</button>
+              <button class="photo-add-btn" type="button" onclick="triggerPhotoLibraryInput()">🖼️ 画像</button>
+            </div>
+          </div>
+          <!-- 2列x2行 表示枠 (最大4個) -->
+          <div class="photo-grid" id="photoGrid"></div>
+        </div>
+
       </div>
       <div class="note-footer">
         <button class="note-close-btn" style="background: #666;" onclick="cancelNote()">キャンセル</button>
         <button class="note-close-btn" onclick="saveAndCloseNote()">完了</button>
+      </div>
+    </div>
+
+    <!-- 4.1 写真拡大表示 Modal (横幅360px) -->
+    <div class="photo-modal-overlay" id="photoViewModalOverlay" onclick="closePhotoViewModal()">
+      <div class="photo-modal-content" onclick="event.stopPropagation()">
+        <img id="photoViewModalImg" class="photo-modal-img" src="" alt="拡大画像">
+        <div id="photoViewModalInfo" class="photo-modal-info"></div>
+        <button class="photo-modal-close-btn" onclick="closePhotoViewModal()">閉じる</button>
+      </div>
+    </div>
+
+    <!-- 4.15 保存方式選択 PopUp モーダル -->
+    <div class="context-menu-overlay" id="exportModalOverlay" onclick="closeExportModal(event)">
+      <div class="context-menu" style="width: 250px;" onclick="event.stopPropagation()">
+        <div class="context-menu-title">⬆️ 保存方式の選択</div>
+        <button class="context-menu-btn" onclick="exportTextJSON()">
+          １　テキスト保存 (.json)
+        </button>
+        <button class="context-menu-btn" onclick="exportFullZIP()" style="flex-direction: column; gap: 2px;">
+          <span>２　フル保存 (.zip)</span>
+          <span style="font-size: 10px; color: #666; font-weight: normal;">※画像を含みます</span>
+        </button>
+        <button class="context-menu-btn" onclick="closeExportModal()" style="font-size: 11px; color: #555;">
+          キャンセル
+        </button>
       </div>
     </div>
 
@@ -935,19 +1152,19 @@
   let currentFilteredEvents = [];
   let clipboardData = null;
 
-  // リストのドラッグ＆ドロップ状態管理フラグ
+  // 編集中の写真データ保持用配列 [{ id, name, date, data, isSaved }]
+  let modalPhotos = [];
+
   window._isDraggingList = false;
 
   const WEEK_DAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
-  // ★ サスペンド復帰時のフリーズ対策（イベントリスナー追加）
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
       isSaving = false;
       window._isDraggingList = false;
       showSavingStatus(false);
       
-      // ドラッグ中のゴースト要素が残っていれば削除
       document.querySelectorAll('.dragging').forEach(el => el.remove());
       
       if (db) {
@@ -1124,15 +1341,19 @@
     applyFontOffset();
   }
 
+  // ★ IndexedDB 初期化 (events ストア + app_cache ストア)
   function initDB() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open("PalmDatebookDB_v4", 1);
+      const request = indexedDB.open("PalmDatebookDB_v4", 2);
 
       request.onupgradeneeded = (e) => {
         const database = e.target.result;
         if (!database.objectStoreNames.contains("events")) {
           const store = database.createObjectStore("events", { keyPath: "id" });
           store.createIndex("date", "date", { unique: false });
+        }
+        if (!database.objectStoreNames.contains("app_cache")) {
+          database.createObjectStore("app_cache", { keyPath: "key" });
         }
       };
 
@@ -1147,6 +1368,55 @@
         reject(e);
       };
     });
+  }
+
+  function getCacheDirect(key) {
+    return new Promise((resolve) => {
+      if (!db) return resolve(null);
+      const tx = db.transaction("app_cache", "readonly");
+      const store = tx.objectStore("app_cache");
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result ? req.result.value : null);
+      req.onerror = () => resolve(null);
+    });
+  }
+
+  function saveCacheDirect(key, value) {
+    return new Promise((resolve) => {
+      if (!db) return resolve();
+      const tx = db.transaction("app_cache", "readwrite");
+      const store = tx.objectStore("app_cache");
+      store.put({ key: key, value: value });
+      tx.oncomplete = () => resolve();
+    });
+  }
+
+  // ★ JSZip ライブラリの初回ダウンロード & アプリ内 (IndexedDB) 保存・自動実行ロジック
+  async function ensureJSZip() {
+    if (window.JSZip) return window.JSZip;
+
+    let code = await getCacheDirect("jszip_code");
+    if (!code) {
+      updateStatus("JSZipダウンロード中...");
+      try {
+        const res = await fetch("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
+        if (!res.ok) throw new Error("Fetch failed: " + res.status);
+        code = await res.text();
+        await saveCacheDirect("jszip_code", code);
+        updateStatus("JSZipを保存完了");
+      } catch (err) {
+        alert("JSZipの取得に失敗しました。ネット接続を確認してください: " + err);
+        throw err;
+      }
+    }
+
+    if (code && !window.JSZip) {
+      const script = document.createElement("script");
+      script.textContent = code;
+      document.head.appendChild(script);
+    }
+
+    return window.JSZip;
   }
 
   function getEventsByDate(dateStr) {
@@ -1199,77 +1469,237 @@
     });
   }
 
-  async function exportJSONData() {
+  // ★ 1. テキスト保存 (.json) の処理
+  async function exportTextJSON() {
+    closeExportModal();
     try {
       const allEvents = await getAllEvents();
-      const dataStr = JSON.stringify(allEvents, null, 2);
+      
+      const textEvents = allEvents.map(e => {
+        const copyEvt = { ...e };
+        if (copyEvt.photos && Array.isArray(copyEvt.photos)) {
+          copyEvt.photos = copyEvt.photos.map(p => {
+            const { data, ...meta } = p;
+            return meta;
+          });
+        }
+        return copyEvt;
+      });
+
+      const dataStr = JSON.stringify(textEvents, null, 2);
       const blob = new Blob([dataStr], { type: "application/json" });
       
       const now = new Date();
       const timeStamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
       const fileName = `palm_datebook_${timeStamp}.json`;
 
-      const file = new File([blob], fileName, { type: "application/json" });
+      await downloadBlob(blob, fileName);
 
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file] });
-          updateStatus(`JSON共有完了: ${fileName}`);
-          return;
-        } catch (shareErr) {
-          if (shareErr.name === 'AbortError') return;
+      let unsavedCount = 0;
+      for (const evt of allEvents) {
+        if (evt.photos && Array.isArray(evt.photos)) {
+          let updated = false;
+          for (const photo of evt.photos) {
+            if (photo.isSaved === false && photo.data) {
+              const photoBlob = dataURLtoBlob(photo.data);
+              const pName = photo.name || `photo_${photo.id}.jpg`;
+              await downloadBlob(photoBlob, pName);
+              photo.isSaved = true;
+              updated = true;
+              unsavedCount++;
+            }
+          }
+          if (updated) {
+            await saveEventDirect(evt);
+          }
         }
       }
 
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      updateStatus(`JSONファイル保存完了: ${fileName}`);
+      updateStatus(`JSON保存完了 (${fileName})${unsavedCount > 0 ? ` + 画像${unsavedCount}枚出力` : ''}`);
+      refreshCurrentView();
     } catch (err) {
-      alert("JSON保存・共有に失敗しました: " + err);
+      alert("JSON保存に失敗しました: " + err);
     }
   }
 
-  function triggerImportJSON() {
-    const fileInput = document.getElementById("jsonFileInput");
+  // ★ 2. フル保存 (.zip) の処理
+  async function exportFullZIP() {
+    closeExportModal();
+    try {
+      updateStatus("ZIPを作成中...");
+      const JSZipLib = await ensureJSZip();
+      const zip = new JSZipLib();
+
+      const allEvents = await getAllEvents();
+
+      const textEvents = allEvents.map(e => {
+        const copyEvt = { ...e };
+        if (copyEvt.photos && Array.isArray(copyEvt.photos)) {
+          copyEvt.photos = copyEvt.photos.map(p => {
+            const { data, ...meta } = p;
+            return meta;
+          });
+        }
+        return copyEvt;
+      });
+
+      zip.file("palm_datebook_data.json", JSON.stringify(textEvents, null, 2));
+
+      const imgFolder = zip.folder("images");
+      for (const evt of allEvents) {
+        if (evt.photos && Array.isArray(evt.photos)) {
+          let updated = false;
+          for (const photo of evt.photos) {
+            if (photo.data) {
+              const base64Data = photo.data.replace(/^data:image\/(jpeg|png);base64,/, "");
+              const pName = `${photo.id}.jpg`;
+              imgFolder.file(pName, base64Data, { base64: true });
+
+              if (photo.isSaved === false) {
+                photo.isSaved = true;
+                updated = true;
+              }
+            }
+          }
+          if (updated) {
+            await saveEventDirect(evt);
+          }
+        }
+      }
+
+      const now = new Date();
+      const timeStamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+      const zipFileName = `palm_datebook_${timeStamp}.zip`;
+
+      const zipContent = await zip.generateAsync({ type: "blob" });
+      await downloadBlob(zipContent, zipFileName);
+
+      updateStatus(`ZIPフル保存完了 (${zipFileName})`);
+      refreshCurrentView();
+    } catch (err) {
+      alert("ZIP保存に失敗しました: " + err);
+    }
+  }
+
+  // ★ Web Share API (共有メニュー) 対応版のダウンロード関数
+  async function downloadBlob(blob, fileName) {
+    const file = new File([blob], fileName, { type: blob.type || "application/octet-stream" });
+
+    // スマホ等の「共有メニュー」が使える環境か判定
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: fileName
+        });
+        return; // 共有メニューが開けたらここで終了
+      } catch (err) {
+        // ユーザーが「キャンセル」を押した場合は何もしない
+        if (err.name === 'AbortError') return;
+        // その他のエラー時は下のフォールバック（直接ダウンロード）に進む
+      }
+    }
+
+    // 非対応環境（PCブラウザ等）またはエラー時のフォールバック処理
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function dataURLtoBlob(dataurl) {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  }
+
+  function openExportModal() {
+    document.getElementById("exportModalOverlay").style.display = "flex";
+  }
+
+  function closeExportModal(e) {
+    if (!e || e.target.id === "exportModalOverlay" || e.type === "click") {
+      document.getElementById("exportModalOverlay").style.display = "none";
+    }
+  }
+
+  function triggerImportData() {
+    const fileInput = document.getElementById("importFileInput");
     if (fileInput) {
       fileInput.value = "";
       fileInput.click();
     }
   }
 
-  async function importJSONData(event) {
+  // ★ 読込の挙動 (JSON / ZIP 自動判定)
+  async function importDataFile(event) {
     const file = event.target.files[0];
     if (!file) return;
 
+    const lowerName = file.name.toLowerCase();
+
+    if (lowerName.endsWith(".zip")) {
+      await importZIPFile(file);
+    } else {
+      await importJSONFile(file);
+    }
+  }
+
+  // 1. JSONファイルの読込 (テキストのみ全置換、既存画像のサムネイルは保持)
+  async function importJSONFile(file) {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
-        const eventsData = JSON.parse(e.target.result);
-        if (!Array.isArray(eventsData)) {
+        const textEvents = JSON.parse(e.target.result);
+        if (!Array.isArray(textEvents)) {
           alert("不正なJSONフォーマットです。（配列データではありません）");
           return;
         }
 
+        const existingEvents = await getAllEvents();
+        const photoDataMap = {};
+        existingEvents.forEach(evt => {
+          if (evt.photos && Array.isArray(evt.photos)) {
+            evt.photos.forEach(p => {
+              if (p.data) {
+                if (p.id) photoDataMap[p.id] = p.data;
+                if (p.name) photoDataMap[p.name] = p.data;
+              }
+            });
+          }
+        });
+
         const tx = db.transaction("events", "readwrite");
         const store = tx.objectStore("events");
-
         store.clear();
 
-        for (const item of eventsData) {
+        for (const item of textEvents) {
           if (item && item.id) {
+            if (item.photos && Array.isArray(item.photos)) {
+              item.photos = item.photos.map(p => {
+                const existingData = photoDataMap[p.id] || photoDataMap[p.name] || null;
+                return {
+                  ...p,
+                  data: existingData
+                };
+              });
+            }
             store.put(item);
           }
         }
 
         tx.oncomplete = () => {
-          updateStatus(`JSON読込・置換完了 (${eventsData.length}件)`);
+          updateStatus(`JSON読込完了 (画像サムネイルは保持・復元)`);
           switchView(currentView);
         };
 
@@ -1284,6 +1714,68 @@
     reader.readAsText(file);
   }
 
+  // 2. ZIPファイルの読込 (DBの全画像削除 -> ZIP解凍 -> JPEG取込 & JSON復元)
+  async function importZIPFile(file) {
+    try {
+      updateStatus("ZIPを解凍中...");
+      const JSZipLib = await ensureJSZip();
+      const zip = await JSZipLib.loadAsync(file);
+
+      const jsonFile = zip.file("palm_datebook_data.json") || Object.values(zip.files).find(f => f.name.endsWith(".json"));
+      if (!jsonFile) {
+        alert("ZIP内に有効なJSONデータが見つかりません。");
+        return;
+      }
+
+      const jsonText = await jsonFile.async("string");
+      const eventsData = JSON.parse(jsonText);
+
+      const zipImageMap = {};
+      const imageFiles = Object.values(zip.files).filter(f => !f.dir && (f.name.endsWith(".jpg") || f.name.endsWith(".jpeg") || f.name.endsWith(".png")));
+
+      for (const imgFile of imageFiles) {
+        const base64Str = await imgFile.async("base64");
+        const mime = imgFile.name.endsWith(".png") ? "image/png" : "image/jpeg";
+        const dataUrl = `data:${mime};base64,${base64Str}`;
+        const cleanName = imgFile.name.split('/').pop().replace(/\.[^/.]+$/, "");
+        zipImageMap[cleanName] = dataUrl;
+        zipImageMap[imgFile.name] = dataUrl;
+      }
+
+      const tx = db.transaction("events", "readwrite");
+      const store = tx.objectStore("events");
+      store.clear();
+
+      for (const item of eventsData) {
+        if (item && item.id) {
+          if (item.photos && Array.isArray(item.photos)) {
+            item.photos = item.photos.map(p => {
+              const matchedData = zipImageMap[p.id] || zipImageMap[`${p.id}.jpg`] || zipImageMap[p.name] || null;
+              return {
+                ...p,
+                data: matchedData,
+                isSaved: true
+              };
+            });
+          }
+          store.put(item);
+        }
+      }
+
+      tx.oncomplete = () => {
+        updateStatus(`ZIP復元完了 (データベース一括更新)`);
+        switchView(currentView);
+      };
+
+      tx.onerror = (err) => {
+        alert("ZIP復元処理中にエラーが発生しました: " + err.target.error);
+      };
+
+    } catch (err) {
+      alert("ZIPファイルの解凍・復元に失敗しました: " + err);
+    }
+  }
+
   async function saveTimeSlotEvent(id, dateStr, timeStr, newTitle) {
     if (isSaving) return;
     isSaving = true;
@@ -1293,7 +1785,7 @@
       const titleTrim = (newTitle || "").trim();
       const existing = await getEventById(id);
 
-      const isContentEmpty = !titleTrim && (!existing || (!existing.note && !existing.marker && !existing.alarmEnabled));
+      const isContentEmpty = !titleTrim && (!existing || (!existing.note && !existing.marker && !existing.alarmEnabled && (!existing.photos || existing.photos.length === 0)));
 
       if (isContentEmpty) {
         if (existing) {
@@ -1310,6 +1802,7 @@
           marker: existing ? (existing.marker || null) : null,
           alarmEnabled: existing ? (existing.alarmEnabled || false) : false,
           alarmTime: existing ? (existing.alarmTime || `${dateStr}T${timeStr}`) : `${dateStr}T${timeStr}`,
+          photos: existing ? (existing.photos || []) : [],
           updatedAt: new Date().toISOString()
         };
         await saveEventDirect(eventObj);
@@ -1416,14 +1909,14 @@
     titleEl.textContent = `⏱ ${timeStr} の操作`;
     container.innerHTML = "";
 
-    const hasContent = evtObj && ((evtObj.title && evtObj.title.trim()) || (evtObj.note && evtObj.note.trim()) || evtObj.marker);
+    const hasContent = evtObj && ((evtObj.title && evtObj.title.trim()) || (evtObj.note && evtObj.note.trim()) || evtObj.marker || (evtObj.photos && evtObj.photos.length > 0));
 
     if (hasContent) {
       const copyBtn = document.createElement("button");
       copyBtn.className = "context-menu-btn";
       copyBtn.innerHTML = "📋 コピー";
       copyBtn.onclick = () => {
-        clipboardData = { title: evtObj.title || "", note: evtObj.note || "", marker: evtObj.marker || null };
+        clipboardData = { title: evtObj.title || "", note: evtObj.note || "", marker: evtObj.marker || null, photos: evtObj.photos || [] };
         updateStatus(`コピー完了: ${evtObj.title || timeStr}`);
         closeContextMenu();
       };
@@ -1432,7 +1925,7 @@
       cutBtn.className = "context-menu-btn";
       cutBtn.innerHTML = "✂️ 切り取り";
       cutBtn.onclick = async () => {
-        clipboardData = { title: evtObj.title || "", note: evtObj.note || "", marker: evtObj.marker || null };
+        clipboardData = { title: evtObj.title || "", note: evtObj.note || "", marker: evtObj.marker || null, photos: evtObj.photos || [] };
         await deleteEventDirect(evtObj.id);
         updateStatus(`切り取り完了: ${timeStr}`);
         closeContextMenu();
@@ -1457,7 +1950,7 @@
       if (clipboardData) {
         const pasteBtn = document.createElement("button");
         pasteBtn.className = "context-menu-btn";
-        pasteBtn.innerHTML = `📌 ペースト (${clipboardData.title || 'メモあり'})`;
+        pasteBtn.innerHTML = `📌 ペースト (${clipboardData.title || 'データあり'})`;
         pasteBtn.onclick = async () => {
           const evtId = evtObj ? evtObj.id : `evt_${currentDate}_${timeStr}`;
           const newEvt = {
@@ -1467,6 +1960,7 @@
             title: clipboardData.title,
             note: clipboardData.note,
             marker: clipboardData.marker || null,
+            photos: clipboardData.photos || [],
             updatedAt: new Date().toISOString()
           };
           await saveEventDirect(newEvt);
@@ -1531,7 +2025,7 @@
 
       const timeLabel = document.createElement("div");
       timeLabel.className = "time-label";
-      timeLabel.textContent = String(h); // 時刻のみ表示
+      timeLabel.textContent = String(h);
 
       const inputContainer = document.createElement("div");
       inputContainer.className = "event-input-container";
@@ -1563,8 +2057,11 @@
       }
 
       const noteBtn = document.createElement("button");
-      noteBtn.className = "note-icon-btn" + (evt && (evt.note || evt.alarmEnabled) ? " has-note" : "");
-      noteBtn.innerHTML = evt && evt.alarmEnabled ? "⚠️" : (evt && evt.note ? "📝" : "📄");
+      const hasPhoto = evt && evt.photos && evt.photos.length > 0;
+      const hasNote = evt && (evt.note || evt.alarmEnabled);
+      noteBtn.className = "note-icon-btn" + (hasNote || hasPhoto ? " has-note" : "");
+      
+      noteBtn.innerHTML = evt && evt.alarmEnabled ? "⚠️" : (hasPhoto ? "📷" : (evt && evt.note ? "📝" : "📄"));
       noteBtn.onclick = () => openNoteModal(evtId, timeStr, input.value);
 
       actionGroup.appendChild(noteBtn);
@@ -1574,7 +2071,7 @@
       slotDiv.appendChild(timeLabel);
       slotDiv.appendChild(inputContainer);
 
-      attachLongPressEvents(slotDiv, evt || { id: evtId, date: currentDate, time: timeStr, title: "", note: "", marker: null }, timeStr);
+      attachLongPressEvents(slotDiv, evt || { id: evtId, date: currentDate, time: timeStr, title: "", note: "", marker: null, photos: [] }, timeStr);
 
       listContainer.appendChild(slotDiv);
 
@@ -1667,7 +2164,9 @@
         dayEvents.forEach(evt => {
           const item = document.createElement("div");
           item.className = "month-event-item";
-          const shortTitle = evt.title.length > 5 ? evt.title.substring(0, 5) : evt.title;
+          const icon = (evt.photos && evt.photos.length > 0) ? "📷" : "";
+          const titleTxt = icon + evt.title;
+          const shortTitle = titleTxt.length > 6 ? titleTxt.substring(0, 6) : titleTxt;
           item.textContent = shortTitle;
           listDiv.appendChild(item);
         });
@@ -1683,7 +2182,6 @@
     applyMonthZoom();
   }
 
-  // ★ 一覧画面のレンダリング（アイコン削除・分の削除・ジャンプ先変更等）
   async function renderMemoView() {
     document.getElementById("dateDisplay").textContent = "📋 予定一覧";
     const memoContainer = document.getElementById("memoView");
@@ -1698,7 +2196,7 @@
     
     let validEvents = allEvents.filter(e => 
       (!e.id || !e.id.startsWith("holiday_")) &&
-      ((e.title && e.title.trim() !== "") || (e.note && e.note.trim() !== ""))
+      ((e.title && e.title.trim() !== "") || (e.note && e.note.trim() !== "") || (e.photos && e.photos.length > 0))
     );
 
     if (keyword !== "") {
@@ -1723,26 +2221,29 @@
       const item = document.createElement("div");
       item.className = "memo-item";
       
-      // データ属性を付与（ドラッグ処理用）
       item.dataset.evtId = evt.id;
       item.dataset.evtDate = evt.date;
       item.dataset.evtTime = evt.time;
 
       const hasNote = evt.note && evt.note.trim() !== "";
+      const hasPhotos = evt.photos && evt.photos.length > 0;
       const titleDisplay = evt.title && evt.title.trim() ? evt.title : "（件名なし）";
       
-      // 時刻の分を削除
       const timeH = parseInt(evt.time.split(":")[0], 10);
       const dateText = `${formatDateWithDay(evt.date)} ${timeH}時`;
 
-      if (hasNote) {
-        const firstLineNote = evt.note.trim().split('\n')[0];
+      let previewParts = [];
+      if (hasNote) previewParts.push(`📝 ${evt.note.trim().split('\n')[0]}`);
+
+      if (hasPhotos) previewParts.push(`📷 写真 ${evt.photos.length}枚`);
+
+      if (previewParts.length > 0) {
         item.innerHTML = `
           <div class="single-line-content" style="margin-bottom: 2px;">
             <span class="schedule-date-time">${dateText}</span>
             <span class="schedule-title">${titleDisplay}</span>
           </div>
-          <div class="memo-item-preview">📝 ${firstLineNote}</div>
+          <div class="memo-item-preview">${previewParts.join(' ')}</div>
         `;
       } else {
         item.classList.add("single-line");
@@ -1754,7 +2255,6 @@
         `;
       }
 
-      // タップでプロパティ編集モーダルを開く
       item.onclick = (e) => {
         if (window._isDraggingList) return;
         currentDate = evt.date;
@@ -1764,7 +2264,6 @@
       filteredListContainer.appendChild(item);
     });
     
-    // 今日の予定が上にくるようスクロール位置調整
     setTimeout(() => {
       const todayStr = getTodayString();
       const items = Array.from(filteredListContainer.children);
@@ -1787,8 +2286,13 @@
       const title = evt.title && evt.title.trim() ? evt.title.trim() : "（件名なし）";
       const timeH = parseInt(evt.time.split(":")[0], 10);
       let line = `${formatDateWithDay(evt.date)} ${timeH}時 ${title}`;
-      if (evt.note && evt.note.trim()) {
+
+    if (evt.note && evt.note.trim()) {
         line += `\n📝 ${evt.note.trim()}`;
+    }
+
+      if (evt.photos && evt.photos.length > 0) {
+        line += `\n📷 写真: ${evt.photos.length}枚`;
       }
       return line;
     });
@@ -1813,7 +2317,6 @@
     }
   }
 
-  // ★ 仕事一覧画面のレンダリング（背景色適用・アイコン削除・分の削除）
   async function renderWorkView() {
     document.getElementById("dateDisplay").textContent = "💼 仕事一覧";
     const workContainer = document.getElementById("workView");
@@ -1834,7 +2337,6 @@
       const item = document.createElement("div");
       item.className = "memo-item";
       
-      // 背景色の適用
       if (evt.marker === "yellow") {
         item.style.backgroundColor = "rgba(255, 235, 59, 0.45)";
       } else if (evt.marker === "red") {
@@ -1866,7 +2368,6 @@
     });
   }
 
-  // 新規追加：予定プロパティモーダル用曜日更新関数
   function updateModalDayOfWeek() {
     const dateVal = document.getElementById("modalDateInput").value;
     if (dateVal) {
@@ -1904,7 +2405,7 @@
     }
     
     document.getElementById("modalDateInput").value = modalContext.date;
-    updateModalDayOfWeek(); // 曜日テキストの更新を追加
+    updateModalDayOfWeek();
     document.getElementById("modalTimeInput").value = parseInt(modalContext.time.split(":")[0], 10);
 
     const evt = await getEventById(modalContext.id);
@@ -1923,8 +2424,162 @@
     alarmContainer.style.display = (evt && evt.alarmEnabled) ? "block" : "none";
     alarmInput.value = (evt && evt.alarmTime) ? evt.alarmTime : `${modalContext.date}T${modalContext.time}`;
 
+    if (evt && evt.photos && Array.isArray(evt.photos)) {
+      modalPhotos = JSON.parse(JSON.stringify(evt.photos));
+    } else {
+      modalPhotos = [];
+    }
+
+    renderPhotoGrid();
     updateUrlButtons();
     document.getElementById("noteModal").style.display = "flex";
+  }
+
+  // ★ 写真グリッド描画 (最大4枚、2x2、未表示、✕削除ボタン)
+  function renderPhotoGrid() {
+    const grid = document.getElementById("photoGrid");
+    grid.innerHTML = "";
+
+    modalPhotos.forEach((photo, idx) => {
+      const slot = document.createElement("div");
+      slot.className = "photo-slot";
+
+      if (photo.data) {
+        const img = document.createElement("img");
+        img.src = photo.data;
+        img.alt = photo.name || "添付写真";
+        preventBubbling(img);
+
+        img.onclick = () => openPhotoViewModal(photo.data, photo.name, photo.date);
+        slot.appendChild(img);
+      } else {
+        const textCard = document.createElement("div");
+        textCard.className = "photo-text-card";
+        const dateStr = photo.date ? new Date(photo.date).toLocaleString('ja-JP') : '';
+        textCard.innerHTML = `<strong>📄 ${photo.name || '画像情報あり'}</strong><br><span style="color:#666;">${dateStr}</span>`;
+        preventBubbling(textCard);
+        slot.appendChild(textCard);
+      }
+
+      if (photo.isSaved === false) {
+        const unsavedBadge = document.createElement("div");
+        unsavedBadge.className = "photo-unsaved-badge";
+        unsavedBadge.textContent = "未";
+        slot.appendChild(unsavedBadge);
+      }
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "photo-delete-btn";
+      delBtn.innerHTML = "✕";
+      delBtn.title = "削除";
+      preventBubbling(delBtn);
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        modalPhotos.splice(idx, 1);
+        renderPhotoGrid();
+      };
+      slot.appendChild(delBtn);
+
+      grid.appendChild(slot);
+    });
+  }
+
+  function triggerCameraInput() {
+    if (modalPhotos.length >= 4) {
+      alert("写真は最大4枚まで登録できます。");
+      return;
+    }
+    const input = document.getElementById("cameraFileInput");
+    input.value = "";
+    input.click();
+  }
+
+  function triggerPhotoLibraryInput() {
+    if (modalPhotos.length >= 4) {
+      alert("写真は最大4枚まで登録できます。");
+      return;
+    }
+    const input = document.getElementById("photoFileInput");
+    input.value = "";
+    input.click();
+  }
+
+  // ★ 画像選択・取り込み処理 (長辺180px相似縮小 + JPEG70%圧縮)
+  function handlePhotoSelected(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (modalPhotos.length >= 4) {
+      alert("写真は最大4枚まで登録できます。");
+      return;
+    }
+
+    const fileName = file.name || `photo_${Date.now()}.jpg`;
+    const fileDate = file.lastModified ? new Date(file.lastModified).toISOString() : new Date().toISOString();
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_SIDE = 180;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIDE) {
+            height = Math.round((height * MAX_SIDE) / width);
+            width = MAX_SIDE;
+          }
+        } else {
+          if (height > MAX_SIDE) {
+            width = Math.round((width * MAX_SIDE) / height);
+            height = MAX_SIDE;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.7);
+
+        const photoObj = {
+          id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+          name: fileName,
+          date: fileDate,
+          data: compressedDataUrl,
+          isSaved: false
+        };
+
+        modalPhotos.push(photoObj);
+        renderPhotoGrid();
+        updateStatus(`写真を取り込みました (180px圧縮)`);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ★ 拡大表示 (横幅360px、アンチエイリアス表示)
+  function openPhotoViewModal(dataUrl, name, date) {
+    const overlay = document.getElementById("photoViewModalOverlay");
+    const imgEl = document.getElementById("photoViewModalImg");
+    const infoEl = document.getElementById("photoViewModalInfo");
+
+    imgEl.src = dataUrl;
+    const dateStr = date ? new Date(date).toLocaleString('ja-JP') : '';
+    infoEl.innerHTML = `<strong>${name || '添付写真'}</strong><br>${dateStr}`;
+
+    overlay.style.display = "flex";
+  }
+
+  function closePhotoViewModal() {
+    document.getElementById("photoViewModalOverlay").style.display = "none";
   }
 
   function updateUrlButtons() {
@@ -2026,7 +2681,7 @@
 
       const existing = await getEventById(modalContext.id);
       
-      const isContentEmpty = !titleTrim && !noteTrim && !markerVal && !alarmEnabled;
+      const isContentEmpty = !titleTrim && !noteTrim && !markerVal && !alarmEnabled && modalPhotos.length === 0;
 
       if (isContentEmpty) {
         if (existing) {
@@ -2047,6 +2702,7 @@
           marker: markerVal,
           alarmEnabled: alarmEnabled,
           alarmTime: alarmTime || `${newDate}T${finalTimeStr}`,
+          photos: modalPhotos,
           updatedAt: new Date().toISOString()
         };
         await saveEventDirect(eventObj);
@@ -2062,6 +2718,7 @@
         currentDate = modalContext.date; 
       }
       modalContext = null;
+      modalPhotos = [];
       
       switchView('day');
 
@@ -2075,6 +2732,7 @@
 
   function cancelNote() {
     modalContext = null;
+    modalPhotos = [];
     document.getElementById("noteModal").style.display = "none";
   }
 
@@ -2223,7 +2881,7 @@
     let initialPinchDist = 0;
     let initialZoom = 1.0;
     let isPinching = false;
-    let lastCenterY = 0; // 追加
+    let lastCenterY = 0;
 
     const dayList = document.getElementById("scheduleList");
     const monthView = document.getElementById("monthView");
@@ -2264,13 +2922,13 @@
           e.touches[0].clientY - e.touches[1].clientY
         );
         initialZoom = monthZoomFactor;
-        lastCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2; // 追加
+        lastCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       }
     }, { passive: true });
 
     monthView.addEventListener("touchmove", (e) => {
       if (isPinching && e.touches.length === 2) {
-        e.preventDefault(); // デフォルトスクロールを無効化
+        e.preventDefault();
         
         const currentCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
         const currentDist = Math.hypot(
@@ -2294,19 +2952,17 @@
           
           applyMonthZoom();
           
-          // ズーム比が変わった場合、中点を中心に維持するスクロール位置補正
           if (monthZoomFactor !== oldZoom && contentY_in_grid > 0) {
              const zoomRatio = monthZoomFactor / oldZoom;
              const new_contentY_in_grid = contentY_in_grid * zoomRatio;
              monthView.scrollTop = new_contentY_in_grid + nonZoomHeight - offsetY;
           }
           
-          // 2本指での上下スクロール分を加算
           monthView.scrollTop += (lastCenterY - currentCenterY);
         }
         lastCenterY = currentCenterY;
       }
-    }, { passive: false }); // passive: false に変更
+    }, { passive: false });
 
     monthView.addEventListener("touchend", (e) => {
       if (isPinching) {
@@ -2327,7 +2983,6 @@
     });
   }
 
-  // ★ リスト内のアイテムドラッグ入れ替えに伴うデータ更新
   async function handleDropUpdate(droppedItem, container) {
     const evtId = droppedItem.dataset.evtId;
     const evt = await getEventById(evtId);
@@ -2400,7 +3055,6 @@
     refreshCurrentView();
   }
 
-  // ★ リストのドラッグ＆ドロップ用初期化関数
   function initListDrag(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -2495,7 +3149,6 @@
     
     container.addEventListener('touchcancel', cancelDrag);
 
-    // マウス操作（PC向けフォールバック）
     container.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
       const item = e.target.closest('.memo-item');
@@ -2531,7 +3184,7 @@
       const diffY = clientY - dragStartY;
       dragClone.style.transform = `translateY(${diffY}px)`;
 
-      const elements = document.elementsFromPoint(e.clientX, clientY);
+      const elements = document.clientX ? document.elementsFromPoint(e.clientX, clientY) : [];
       const targetItem = elements.find(el => el.classList && el.classList.contains('memo-item') && el !== draggedItem && el.parentNode === container);
       
       if (targetItem) {
@@ -2562,13 +3215,11 @@
     });
   }
 
-  // アプリ起動処理
   window.onload = async () => {
     loadDefaultView();
     loadFontOffset();
     setupSwipeAndZoomNavigation();
 
-    // 一覧および仕事一覧のドラッグ初期化
     initListDrag('scheduleListFiltered');
     initListDrag('workView');
 
